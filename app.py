@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).parent
 HTML_FILE = BASE_DIR / "components" / "sistemas.html"
 
 
-with open(base, "r", encoding="utf-8") as f:
+with open(HTML_FILE, "r", encoding="utf-8") as f:
     html = f.read()
 
 components.html(
