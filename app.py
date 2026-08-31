@@ -10,7 +10,7 @@ st.set_page_config(
 
 #Rutas
 BASE_DIR = Path(__file__).parent
-HTML_FILE = BASE_DIR / "components" / "sistemas.html"
+HTML_FILE = BASE_DIR / "components" / "base.html"
 
 
 with open(HTML_FILE, "r", encoding="utf-8") as f:
