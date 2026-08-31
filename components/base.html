@@ -141,6 +141,80 @@
   }
 </style>
 </head>
+<body>
+
+<div id="splash">
+  <h1>Guía - Sistemas de ecuaciones lineales</h1>
+  <p>¿Cuántas variables utilizarás?</p>
+  <div class="btn-group">
+    <button class="btn-choice" onclick="startApp(2)">2</button>
+    <button class="btn-choice" onclick="startApp(3)">3</button>
+    <button class="btn-choice" onclick="startApp(4)">4</button>
+  </div>
+</div>
+
+<div id="modal-overlay" style="display: none;">
+  <div id="modal-box">
+    <p>¿Estás seguro de esto?</p>
+    <div class="modal-btns">
+      <button id="btn-yes">Sí, ingresar nueva ecuación</button>
+      <button id="btn-no">No, seguir con ecuación actual</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="main-app">
+  
+  <!-- Controles flotantes reubicados -->
+  <div class="top-actions">
+    <div id="review-wrapper">
+      <button class="top-btn" id="btn-review">Necesito un repaso</button>
+      <div id="review-menu">
+        <button class="review-btn" onclick="openReview('gauss')">(Repaso) Gauss-Jordan</button>
+        <button class="review-btn" onclick="openReview('cramer')">(Repaso) Cramer</button>
+        <button class="review-btn" onclick="openReview('inversa')">(Repaso) Matriz Inversa</button>
+      </div>
+    </div>
+    <button class="top-btn" id="btn-reset-app">Ingresar nueva ecuación</button>
+  </div>
+
+  <header class="topbar">
+    <h1>Planos & Rectas</h1>
+    <p class="tagline" id="tagline-text">sistemas de ecuaciones lineales</p>
+  </header>
+  
+  <main class="layout">
+    <aside class="panel">
+      <section>
+        <h2 id="sys-title">Sistema</h2>
+        <div id="equations-container"></div>
+        <div class="sliders-container" id="sliders-container"></div>
+        <div id="eq-preview"></div>
+      </section>
+
+      <button id="btn-solve" class="action-btn">Ingresar problema</button>
+
+      <section class="steps" id="step-section" hidden>
+        <div class="step-nav">
+          <button id="btn-prev">◀</button>
+          <span id="step-indicator">Paso 1</span>
+          <button id="btn-next">▶</button>
+        </div>
+        <p id="caption"></p>
+        <div id="classification">
+          <p class="type" id="class-type"></p>
+          <p class="detail" id="class-detail"></p>
+        </div>
+        <button id="btn-pdf" class="action-btn" hidden>Mostrar procedimiento (PDF)</button>
+      </section>
+    </aside>
+
+    <section class="viewport" id="viewport-section">
+      <canvas id="scene"></canvas>
+      <p class="hint" id="canvas-hint">arrastra para rotar · rueda para acercar</p>
+    </section>
+  </main>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script>
@@ -707,77 +781,3 @@ function openReview(method) {
 </script>
 </body>
 </html>
-<body>
-
-<div id="splash">
-  <h1>Guía - Sistemas de ecuaciones lineales</h1>
-  <p>¿Cuántas variables utilizarás?</p>
-  <div class="btn-group">
-    <button class="btn-choice" onclick="startApp(2)">2</button>
-    <button class="btn-choice" onclick="startApp(3)">3</button>
-    <button class="btn-choice" onclick="startApp(4)">4</button>
-  </div>
-</div>
-
-<div id="modal-overlay" style="display: none;">
-  <div id="modal-box">
-    <p>¿Estás seguro de esto?</p>
-    <div class="modal-btns">
-      <button id="btn-yes">Sí, ingresar nueva ecuación</button>
-      <button id="btn-no">No, seguir con ecuación actual</button>
-    </div>
-  </div>
-</div>
-
-<div class="app" id="main-app">
-  
-  <!-- Controles flotantes reubicados -->
-  <div class="top-actions">
-    <div id="review-wrapper">
-      <button class="top-btn" id="btn-review">Necesito un repaso</button>
-      <div id="review-menu">
-        <button class="review-btn" onclick="openReview('gauss')">(Repaso) Gauss-Jordan</button>
-        <button class="review-btn" onclick="openReview('cramer')">(Repaso) Cramer</button>
-        <button class="review-btn" onclick="openReview('inversa')">(Repaso) Matriz Inversa</button>
-      </div>
-    </div>
-    <button class="top-btn" id="btn-reset-app">Ingresar nueva ecuación</button>
-  </div>
-
-  <header class="topbar">
-    <h1>Planos & Rectas</h1>
-    <p class="tagline" id="tagline-text">sistemas de ecuaciones lineales</p>
-  </header>
-  
-  <main class="layout">
-    <aside class="panel">
-      <section>
-        <h2 id="sys-title">Sistema</h2>
-        <div id="equations-container"></div>
-        <div class="sliders-container" id="sliders-container"></div>
-        <div id="eq-preview"></div>
-      </section>
-
-      <button id="btn-solve" class="action-btn">Ingresar problema</button>
-
-      <section class="steps" id="step-section" hidden>
-        <div class="step-nav">
-          <button id="btn-prev">◀</button>
-          <span id="step-indicator">Paso 1</span>
-          <button id="btn-next">▶</button>
-        </div>
-        <p id="caption"></p>
-        <div id="classification">
-          <p class="type" id="class-type"></p>
-          <p class="detail" id="class-detail"></p>
-        </div>
-        <button id="btn-pdf" class="action-btn" hidden>Mostrar procedimiento (PDF)</button>
-      </section>
-    </aside>
-
-    <section class="viewport" id="viewport-section">
-      <canvas id="scene"></canvas>
-      <p class="hint" id="canvas-hint">arrastra para rotar · rueda para acercar</p>
-    </section>
-  </main>
-</div>
