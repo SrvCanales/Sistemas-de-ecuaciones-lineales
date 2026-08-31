@@ -51,6 +51,66 @@
   }
   #btn-reset-app:hover { color: var(--text); border-color: var(--muted); }
 
+   /* REPASO */
+
+  #review-container {
+    position: fixed;
+    top: 16px;
+    left: 20px;
+    z-index: 2000;
+  }
+
+  #btn-review {
+    background: var(--bg-deep);
+    color: var(--muted);
+    border: 1px solid var(--panel-line);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  #btn-review:hover {
+    color: var(--text);
+    border-color: var(--muted);
+  }
+
+  #review-menu {
+    display: none;
+    position: absolute;
+    top: 42px;
+    left: 0;
+    width: 230px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+  }
+
+  #review-menu.show {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .review-btn {
+    width: 100%;
+    padding: 9px 10px;
+    background: var(--bg-deep);
+    color: var(--text);
+    border: 1px solid var(--panel-line);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .review-btn:hover {
+    border-color: var(--sol);
+    color: var(--sol);
+  }
+
   /* MAIN LAYOUT */
   .app{ display:none; flex-direction:column; height:100vh; position: relative; }
   header.topbar{ padding:20px 28px 16px; border-bottom:1px solid var(--panel-line); flex-shrink:0; }
