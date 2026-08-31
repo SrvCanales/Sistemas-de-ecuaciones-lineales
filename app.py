@@ -13,10 +13,10 @@ BASE_DIR = Path(__file__).parent
 HTML_FILE = BASE_DIR / "components" / "sistemas.html"
 
 
-with open(https://SrvCanales.github.io/Sistemas-de-ecuaciones-lineales/components/base.html, "r", encoding="utf-8") as f:
+with open(base, "r", encoding="utf-8") as f:
     html = f.read()
 
-components/base.html(
+components.html(
     html,
     height=1000,
     scrolling=False
