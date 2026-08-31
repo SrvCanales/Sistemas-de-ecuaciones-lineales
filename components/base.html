@@ -671,6 +671,28 @@ document.getElementById('btn-yes').addEventListener('click', () => {
   clearDynamic();
 });
 
+/* --- MENÚ DE REPASO --- */
+
+const reviewButton = document.getElementById('btn-review');
+const reviewMenu = document.getElementById('review-menu');
+
+reviewButton.addEventListener('click', () => {
+  reviewMenu.classList.toggle('show');
+});
+
+
+function openReview(method) {
+
+  const urls = {
+    gauss: 'https://TU-USUARIO.github.io/TU-REPOSITORIO/pdf/guia_gauss_jordan.pdf',
+    cramer: 'https://TU-USUARIO.github.io/TU-REPOSITORIO/pdf/guia_cramer.pdf',
+    inversa: 'https://TU-USUARIO.github.io/TU-REPOSITORIO/pdf/guia_matriz_inversa.pdf'
+  };
+
+  window.open(urls[method], '_blank');
+
+}
+  
 </script>
 </body>
 </html>
