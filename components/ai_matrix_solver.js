@@ -1,12 +1,3 @@
-/**
- * ai_matrix_solver.js
- * * Este archivo contiene la lógica para:
- * 1. Leer una matriz M.
- * 2. Enviar la matriz y un prompt especificado a una API de Inteligencia Artificial.
- * 3. Procesar la respuesta y generar un PDF usando jsPDF.
- * 4. Mostrar el PDF en la página y permitir su descarga.
- */
-
 class AIMatrixSolver {
     constructor(matrix, apiKey, provider = 'gemini') {
         this.matrix = matrix;
