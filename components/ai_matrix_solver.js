@@ -1,3 +1,5 @@
+import { Sistema } from "base.html"
+
 class AIMatrixSolver {
     constructor(matrix, apiKey, provider = 'gemini') {
         this.matrix = matrix;
@@ -5,6 +7,11 @@ class AIMatrixSolver {
         this.provider = provider;
         this.pdfUrl = null;
     }
+
+    matrix = Sistema
+    provider = openai
+    apiKey = 
+    userPrompt = "Resuelve esta matriz empleando el método Gauss-Jordan. Entrega un procedimiento completo en formato LATEX empleando la notación adecuada para operaciones elementales por filas. Alterna empleando pequeñas explicaciones, no más largas de una oración. Remarca el resultado."
 
     async solveMatrix(userPrompt) {
         // Convertimos la matriz a texto estructurado para la IA
@@ -31,7 +38,7 @@ class AIMatrixSolver {
     }
 
     async _callGemini(prompt) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.}`;
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -66,7 +73,7 @@ class AIMatrixSolver {
         const doc = new jsPDF();
         
         doc.setFontSize(16);
-        doc.text("Resolución de Matriz mediante Inteligencia Artificial", 10, 20);
+        doc.text("Resolución Mediante Gauss-Jordan", 10, 20);
         
         doc.setFontSize(11);
         doc.setTextColor(100);
@@ -117,7 +124,7 @@ class AIMatrixSolver {
         
         const downloadBtn = document.createElement("a");
         downloadBtn.href = this.pdfUrl;
-        downloadBtn.download = "Resolucion_IA_Matriz.pdf";
+        downloadBtn.download = "Resolución_GaussJordan.pdf";
         downloadBtn.textContent = "📥 Descargar PDF";
         downloadBtn.style = "display: block; width: max-content; margin-bottom: 15px; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-family: sans-serif; font-weight: bold;";
         
