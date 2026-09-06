@@ -758,6 +758,22 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
   btnPdf.textContent = "Generando PDF con IA...";
   btnPdf.style.background = "#8c92a4";
 });
+
+try {
+    // 3. LLAMAMOS A LA FUNCIÓN DE TU ARCHIVO ai_matrix_solver.js
+    // Reemplaza "generarPdfConIA" por el nombre real de tu función
+    await generarPdfConIA(matrizActual); 
+    
+  } catch (error) {
+    console.error("Error al generar el PDF:", error);
+    alert("Hubo un error al generar el PDF con la IA.");
+  } finally {
+    // 4. Restauramos el botón a su estado normal
+    btnPdf.textContent = textoOriginal;
+    btnPdf.style.background = "#3a4052";
+    btnPdf.disabled = false;
+  }
+});
   
 document.getElementById('btn-solve').addEventListener('click', ()=>{
   document.getElementById('step-section').hidden = false;
