@@ -338,8 +338,17 @@ function readMatrix(){
   return M;
 }
 
-Sistema = M
-export{ Sistema };
+function recomputeSystem() {
+  const M = readMatrix();
+  
+  // SINTAXIS DIRECTA PARA EXPORTAR:
+  window.Sistema = M; 
+  
+  systemState.matrix = M;
+  systemState.result = solveSystem(M);
+  systemState.maxSteps = currentDim === 2 ? 3 : (currentDim === 3 ? 5 : 2);
+  goToStep(systemState.step);
+}
 
 /* --- MOTOR MATEMÁTICO AVANZADO (Gauss-Jordan) --- */
 function solveSystem(matrix){
