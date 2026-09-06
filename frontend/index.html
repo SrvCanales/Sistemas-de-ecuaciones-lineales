@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Planos — Sistemas lineales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+  :root{
+    --bg:#12141c; --bg-deep:#0d0f16; --panel:#181b26; --panel-line:#272b3a;
+    --text:#eeeae2; --muted:#8c92a4; --sol:#e8b94e;
+    --p1:#e0674f; --p2:#3fa796; --p3:#8b7fd6; --p4:#d45a94;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans', sans-serif; -webkit-font-smoothing:antialiased;}
+  
+  /* SPLASH SCREEN & MODAL */
+  #splash, #modal-overlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: var(--bg); z-index: 1000;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 20px; text-align: center;
+  }
+  #splash h1 { font-family: 'Newsreader', serif; font-size: 2.5rem; margin-bottom: 10px; }
+  #splash p { font-size: 1.2rem; color: var(--muted); margin-bottom: 30px; }
+  .btn-group { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;}
+  .btn-choice {
+    background: var(--bg-deep); border: 1px solid var(--panel-line);
+    color: var(--text); padding: 15px 30px; font-size: 1.5rem;
+    border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-choice:hover { border-color: var(--sol); color: var(--sol); }
+
+  #modal-box {
+    background: var(--panel); border: 1px solid var(--panel-line);
+    padding: 24px; border-radius: 8px; max-width: 400px;
+  }
+  #modal-box p { margin: 0 0 20px; font-size: 1.1rem; }
+  .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+  .modal-btns button { padding: 12px; border-radius: 6px; cursor: pointer; font-size: 1rem; border: none; font-weight: 500;}
+  #btn-yes { background: var(--sol); color: #1a1408; }
+  #btn-no { background: var(--bg-deep); border: 1px solid var(--panel-line); color: var(--text); }
+
+  /* FLOATING BUTTONS (Agrupados arriba a la derecha) */
+  .top-actions {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 2000;
+  }
+  .top-btn {
+    background: var(--bg-deep); color: var(--muted); border: 1px solid var(--panel-line);
+    padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer;
+  }
+  .top-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  #review-wrapper { position: relative; }
+  #review-menu {
+    display: none; position: absolute; top: 42px; right: 0;
+    width: 200px; padding: 12px; background: var(--panel);
+    border: 1px solid var(--panel-line); border-radius: 6px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+  }
+  #review-menu.show { display: flex; flex-direction: column; gap: 8px; }
+  .review-btn {
+    width: 100%; padding: 9px 10px; background: var(--bg-deep); color: var(--text);
+    border: 1px solid var(--panel-line); border-radius: 4px; cursor: pointer;
+    text-align: left; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+  }
+  .review-btn:hover { border-color: var(--sol); color: var(--sol); }
+
+  /* MAIN LAYOUT */
+  .app{ display:none; flex-direction:column; height:100vh; position: relative; }
+  header.topbar{ padding:20px 28px 16px; border-bottom:1px solid var(--panel-line); flex-shrink:0; }
+  header.topbar h1{ font-family:'Newsreader', serif; font-weight:500; font-size:1.5rem; margin:0; }
+  header.topbar .tagline{ margin:0; color:var(--muted); font-size:0.92rem; font-style:italic; font-family:'Newsreader', serif; }
+  main.layout{ flex:1; display:flex; min-height:0; }
+  
+  aside.panel{ width:420px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--panel-line); padding:24px; overflow-y:auto; display:flex; flex-direction:column; gap:20px; }
+  section.viewport{ flex:1; position:relative; background:radial-gradient(ellipse at 50% 40%, #171a24 0%, var(--bg-deep) 70%); }
+  #scene{ width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+  #scene:active{ cursor:grabbing; }
+  .viewport .hint{ position:absolute; bottom:14px; left:18px; margin:0; font-size:0.78rem; color:var(--muted); font-family:'IBM Plex Mono', monospace; pointer-events:none; }
+  
+  /* DYNAMIC EQUATION INPUTS */
+  .eq-row{ display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap: nowrap; }
+  .eq-row .sym{ color:var(--muted); font-size:0.9rem; }
+  .coef{ 
+    width:50px; background:var(--bg-deep); border:1px solid var(--panel-line);
+    color:var(--text); border-radius:4px; padding:7px 4px; text-align:center;
+    font-family:'IBM Plex Mono', monospace; font-size:0.92rem;
+  }
+  .coef:focus{ outline:none; border-color:var(--sol); }
+  .row-label{ font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--muted); margin-bottom:4px; }
+  
+  /* SLIDERS */
+  .sliders-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--sol); }
+
+  /* PREVIEW & UI COMPONENTS */
+  #eq-preview{ margin-top:14px; padding:14px 12px; background:var(--bg-deep); border:1px solid var(--panel-line); border-radius:6px; overflow-x:auto; color:var(--text); min-height: 80px;}
+  button.action-btn { width:100%; padding:11px; font-weight:600; border-radius:5px; border:none; cursor:pointer; font-family:'IBM Plex Sans', sans-serif; font-size:0.92rem; transition: filter 0.15s ease; }
+  #btn-solve{ background:var(--sol); color:#1a1408; }
+  #btn-solve:hover{ filter:brightness(1.08); }
+  #btn-pdf { background: #3a4052; color: #fff; margin-top: 15px; }
+  #btn-pdf:hover { filter: brightness(1.15); }
+  
+  /* STEPS */
+  .steps{ border-top:1px solid var(--panel-line); padding-top:20px; }
+  .step-nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px; }
+  .step-nav button{ background:var(--bg-deep); color:var(--text); padding:8px 12px; border: 1px solid var(--panel-line); border-radius: 4px; cursor: pointer;}
+  .step-nav button:hover:not(:disabled){border-color:var(--sol);}
+  .step-nav button:disabled{opacity:0.35;cursor:default;}
+  #step-indicator{ font-family:'IBM Plex Mono', monospace; font-size:0.8rem; color:var(--muted); }
+  #caption{ font-size:0.94rem; line-height:1.5; min-height:3.2em; margin:0 0 12px; }
+  
+  #classification{ display:none; padding:14px; border-radius:6px; border:1px solid var(--panel-line); background:var(--bg-deep); }
+  #classification.show{ display:block; }
+  #classification .type{ font-family:'Newsreader', serif; font-style:italic; font-size:1.08rem; margin:0 0 6px; color: var(--sol); }
+  #classification .detail{ font-size:0.85rem; color:var(--text); margin:0; line-height:1.5; }
+  
+  /* ESTILOS PARA MÓVILES (Estilo GeoGebra) */
+  @media (max-width: 860px){
+    .top-actions { top: 12px; right: 12px; gap: 6px; }
+    .top-btn { font-size: 0.75rem; padding: 6px 10px; }
+    header.topbar { padding: 50px 20px 12px; } /* Espacio para los botones flotantes */
+    
+    main.layout{flex-direction:column;}
+    
+    /* El visor va arriba y el panel de control abajo */
+    section.viewport{ order: 1; flex: none; height: 45vh; min-height: 45vh; border-bottom: 1px solid var(--panel-line); }
+    aside.panel{ order: 2; flex: 1; width: 100%; border-right: none; overflow-y: auto; max-height: none; padding: 16px; }
+    
+    .eq-row .coef { width: 40px; }
+    #splash h1 { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <h1>Guía - Sistemas de ecuaciones lineales</h1>
+  <p>¿Cuántas variables utilizarás?</p>
+  <div class="btn-group">
+    <button class="btn-choice" onclick="startApp(2)">2</button>
+    <button class="btn-choice" onclick="startApp(3)">3</button>
+    <button class="btn-choice" onclick="startApp(4)">4</button>
+  </div>
+</div>
+
+<div id="modal-overlay" style="display: none;">
+  <div id="modal-box">
+    <p>¿Estás seguro de esto?</p>
+    <div class="modal-btns">
+      <button id="btn-yes">Sí, ingresar nueva ecuación</button>
+      <button id="btn-no">No, seguir con ecuación actual</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="main-app">
+  
+  <!-- Controles flotantes reubicados -->
+  <div class="top-actions">
+    <div id="review-wrapper">
+      <button class="top-btn" id="btn-review">Necesito un repaso</button>
+      <div id="review-menu">
+        <button class="review-btn" onclick="openReview('gauss')">(Repaso) Gauss-Jordan</button>
+        <button class="review-btn" onclick="openReview('cramer')">(Repaso) Cramer</button>
+        <button class="review-btn" onclick="openReview('inversa')">(Repaso) Matriz Inversa</button>
+      </div>
+    </div>
+    <button class="top-btn" id="btn-reset-app">Ingresar nueva ecuación</button>
+  </div>
+
+  <header class="topbar">
+    <h1>Planos & Rectas</h1>
+    <p class="tagline" id="tagline-text">sistemas de ecuaciones lineales</p>
+  </header>
+  
+  <main class="layout">
+    <aside class="panel">
+      <section>
+        <h2 id="sys-title">Sistema</h2>
+        <div id="equations-container"></div>
+        <div class="sliders-container" id="sliders-container"></div>
+        <div id="eq-preview"></div>
+      </section>
+
+      <button id="btn-solve" class="action-btn">Ingresar problema</button>
+
+      <section class="steps" id="step-section" hidden>
+        <div class="step-nav">
+          <button id="btn-prev">◀</button>
+          <span id="step-indicator">Paso 1</span>
+          <button id="btn-next">▶</button>
+        </div>
+        <p id="caption"></p>
+        <div id="classification">
+          <p class="type" id="class-type"></p>
+          <p class="detail" id="class-detail"></p>
+        </div>
+        <button id="btn-pdf" class="action-btn" hidden>Mostrar procedimiento (PDF)</button>
+      </section>
+    </aside>
+
+    <section class="viewport" id="viewport-section">
+      <canvas id="scene"></canvas>
+      <p class="hint" id="canvas-hint">arrastra para rotar · rueda para acercar</p>
+    </section>
+  </main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script>
+/* --- ESTADO GLOBAL --- */
+let currentDim = 3;
+let parameterValues = {};
+let systemState = { matrix:null, result:null, step:0, maxSteps:0 };
+const VAR_SYMS = ['x', 'y', 'z', 'w'];
+const COLORS = [0xe0674f, 0x3fa796, 0x8b7fd6, 0xd45a94];
+const SOL_COLOR = 0xe8b94e; // Amarillo
+const EPS = 1e-7;
+
+/* --- UI PRINCIPAL --- */
+function startApp(dim) {
+  currentDim = dim;
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  document.getElementById('tagline-text').innerHTML = `sistemas de ecuaciones lineales en &#8477;<sup>${dim}</sup>`;
+  document.getElementById('sys-title').textContent = `Sistema ${dim}×${dim}`;
+  
+  if(dim === 4) {
+    document.getElementById('viewport-section').style.display = 'none';
+    document.querySelector('aside.panel').style.width = '100%';
+  } else {
+    document.getElementById('viewport-section').style.display = 'block';
+    // Si estamos en escritorio, restauramos el ancho del panel. En móviles, se deja en 100%.
+    document.querySelector('aside.panel').style.width = window.innerWidth <= 860 ? '100%' : '420px';
+    buildAxes(); 
+  }
+  
+  generateInputFields();
+  updatePreview();
+  resize();
+}
+
+function generateInputFields() {
+  const container = document.getElementById('equations-container');
+  container.innerHTML = '';
+  parameterValues = {};
+  
+  for(let r=0; r<currentDim; r++) {
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = `ecuación ${r+1}`;
+    container.appendChild(label);
+    
+    const row = document.createElement('div');
+    row.className = 'eq-row';
+    for(let c=0; c<=currentDim; c++) {
+      const inp = document.createElement('input');
+      inp.className = 'coef';
+      inp.type = 'text';
+      inp.id = `c-${r}-${c}`;
+      inp.value = c === r ? '1' : (c === currentDim ? (r+1)*2 : '0'); 
+      inp.addEventListener('input', handleInputChange);
+      
+      row.appendChild(inp);
+      if(c < currentDim) {
+        const sym = document.createElement('span');
+        sym.className = 'sym';
+        sym.textContent = `${VAR_SYMS[c]} ${c < currentDim-1 ? '+' : '='}`;
+        row.appendChild(sym);
+      }
+    }
+    container.appendChild(row);
+  }
+  document.getElementById('step-section').hidden = true;
+}
+
+/* --- MANEJO DE PARÁMETROS --- */
+function handleInputChange() {
+  const inputs = document.querySelectorAll('.coef');
+  const paramsFound = new Set();
+  
+  inputs.forEach(inp => {
+    const val = inp.value.trim();
+    if (isNaN(parseFloat(val)) && /^[a-zA-Z]+$/.test(val)) {
+      paramsFound.add(val);
+      if(parameterValues[val] === undefined) parameterValues[val] = 1; 
+    }
+  });
+
+  const slidersContainer = document.getElementById('sliders-container');
+  slidersContainer.innerHTML = '';
+  paramsFound.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'slider-row';
+    row.innerHTML = `<span>${p} = <span id="val-${p}">${parameterValues[p]}</span></span>
+                     <input type="range" min="-10" max="10" step="0.5" value="${parameterValues[p]}" 
+                     oninput="updateParam('${p}', this.value)">`;
+    slidersContainer.appendChild(row);
+  });
+  
+  updatePreview();
+  if(!document.getElementById('step-section').hidden) recomputeSystem();
+}
+
+function updateParam(p, val) {
+  parameterValues[p] = parseFloat(val);
+  document.getElementById(`val-${p}`).textContent = val;
+  updatePreview();
+  if(!document.getElementById('step-section').hidden) recomputeSystem();
+}
+
+function getVal(str) {
+  str = str.trim();
+  if (parameterValues[str] !== undefined) return parameterValues[str];
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+function readMatrix(){
+  const M=[];
+  for(let r=0; r<currentDim; r++){
+    const row=[];
+    for(let c=0; c<=currentDim; c++){
+      row.push(getVal(document.getElementById(`c-${r}-${c}`).value));
+    }
+    M.push(row);
+  }
+  return M;
+}
+
+function recomputeSystem() {
+  const M = readMatrix();
+  
+  // SINTAXIS DIRECTA PARA EXPORTAR:
+  window.Sistema = M; 
+  
+  systemState.matrix = M;
+  systemState.result = solveSystem(M);
+  systemState.maxSteps = currentDim === 2 ? 3 : (currentDim === 3 ? 5 : 2);
+  goToStep(systemState.step);
+}
+
+/* --- MOTOR MATEMÁTICO AVANZADO (Gauss-Jordan) --- */
+function solveSystem(matrix){
+  const numRows = matrix.length;
+  const numCols = matrix[0].length;
+  const vars = numCols - 1;
+  const M = matrix.map(row=>row.slice());
+  let lead = 0;
+  
+  // Eliminación
+  for(let r=0; r<numRows; r++){
+    if(lead >= vars) break;
+    let i = r;
+    while(Math.abs(M[i][lead]) < EPS){
+      i++;
+      if(i === numRows){ i=r; lead++; if(lead >= vars) break; }
+    }
+    if(lead >= vars) break;
+    [M[i],M[r]] = [M[r],M[i]];
+    const val = M[r][lead];
+    M[r] = M[r].map(x=>x/val);
+    for(let k=0;k<numRows;k++){
+      if(k===r) continue;
+      const f = M[k][lead];
+      M[k] = M[k].map((x,j)=> x - f*M[r][j]);
+    }
+    lead++;
+  }
+
+  // Análisis de rango y consistencia
+  const pivotCols = Array(numRows).fill(-1);
+  let inconsistent = false;
+  for(let r=0;r<numRows;r++){
+    let pc=-1;
+    for(let c=0;c<vars;c++){ if(Math.abs(M[r][c])>1e-6){ pc=c; break; } }
+    if(pc===-1){
+      if(Math.abs(M[r][vars])>1e-6) inconsistent = true;
+    } else { pivotCols[r] = pc; }
+  }
+  
+  const rankA = pivotCols.filter(x=>x!==-1).length;
+  let type = inconsistent ? 'none' : (rankA === vars ? 'unique' : 'infinite');
+  
+  // Extracción de vectores particulares y de dirección (para el trazado de la solución)
+  let particular = Array(vars).fill(0);
+  let directions = [];
+  
+  if(!inconsistent) {
+    for(let r=0; r<numRows; r++) {
+      if(pivotCols[r] !== -1) particular[pivotCols[r]] = M[r][vars];
+    }
+    const freeCols = [];
+    for(let c=0; c<vars; c++) {
+      if(!pivotCols.includes(c)) freeCols.push(c);
+    }
+    directions = freeCols.map(f => {
+      const v = Array(vars).fill(0);
+      v[f] = 1;
+      for(let r=0; r<numRows; r++){
+        if(pivotCols[r] !== -1) v[pivotCols[r]] = -M[r][f];
+      }
+      return v;
+    });
+  }
+
+  return {type, rankA, M, particular, directions, inconsistent};
+}
+
+/* --- FORMATO Y PREVIEW (LaTeX) --- */
+function fmtNum(n){
+  const r = Math.round(n*1000)/1000;
+  return (Object.is(r,-0) ? 0 : r).toString();
+}
+function updatePreview(){
+  const M = readMatrix();
+  let tex = '\\begin{cases} ';
+  for(let r=0; r<currentDim; r++){
+    let s = '', first=true;
+    for(let c=0; c<currentDim; c++) {
+      const coef = M[r][c];
+      if(Math.abs(coef) > 1e-9) {
+        const sign = coef<0 ? '-' : (first ? '' : '+');
+        const abs = Math.abs(coef);
+        const numStr = (Math.abs(abs-1)<1e-9) ? '' : fmtNum(abs);
+        s += `${sign} ${numStr}${VAR_SYMS[c]} `;
+        first = false;
+      }
+    }
+    if(s==='') s='0 ';
+    tex += `${s} = ${fmtNum(M[r][currentDim])} \\\\ `;
+  }
+  tex += '\\end{cases}';
+  try{ katex.render(tex, document.getElementById('eq-preview'), {throwOnError:false, displayMode:true}); }catch(e){}
+}
+
+/* --- THREE.JS ESCENA --- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
+
+let radius = 15, theta = Math.PI/4, phi = Math.PI/3.1;
+let dynamicObjects = [];
+const persistent = new THREE.Group();
+scene.add(persistent);
+
+function updateCamera(){
+  if(currentDim === 2) {
+    camera.position.set(0,0, radius);
+    camera.lookAt(0,0,0);
+  } else {
+    camera.position.set( radius*Math.sin(phi)*Math.sin(theta), radius*Math.cos(phi), radius*Math.sin(phi)*Math.cos(theta) );
+    camera.lookAt(0,0,0);
+  }
+}
+
+function resize(){
+  const viewport = document.querySelector('section.viewport');
+  if(!viewport || viewport.style.display==='none') return;
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+let dragging=false, lastX=0, lastY=0;
+canvas.addEventListener('pointerdown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup', ()=>{ dragging=false; });
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging || currentDim === 2) return; 
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  theta += dx*0.006; phi = Math.min(Math.PI-0.2, Math.max(0.2, phi - dy*0.006));
+});
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  radius = Math.min(35, Math.max(5, radius * (1 + e.deltaY*0.001)));
+  updateCamera();
+}, {passive:false});
+
+/* --- ETIQUETAS DE EJES Y GRILLA --- */
+function makeAxisLabel(text, color){
+  const cnv = document.createElement('canvas'); cnv.width=64; cnv.height=64;
+  const ctx = cnv.getContext('2d');
+  ctx.font = '600 40px "IBM Plex Mono", monospace';
+  ctx.fillStyle = color;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text,32,32);
+  const tex = new THREE.CanvasTexture(cnv);
+  const mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false});
+  const spr = new THREE.Sprite(mat);
+  spr.scale.set(1.5,1.5,1.5);
+  return spr;
+}
+
+function buildAxes(){
+  persistent.clear();
+  const grid = new THREE.GridHelper(20, 20, 0x2a2f40, 0x1c2030);
+  if(currentDim===2) grid.rotation.x = Math.PI/2; 
+  grid.material.transparent = true; grid.material.opacity = 0.5;
+  persistent.add(grid);
+  
+  const axLen = 8;
+  const dirs = currentDim===2 ? [[1,0,0], [0,1,0]] : [[1,0,0], [0,1,0], [0,0,1]];
+  const labels = ['X', 'Y', 'Z'];
+  const colors = [0xb08b7f, 0x7fa89e, 0x8f8bb0];
+  
+  dirs.forEach((d, i)=>{
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-d[0]*axLen,-d[1]*axLen,-d[2]*axLen),
+      new THREE.Vector3(d[0]*axLen,d[1]*axLen,d[2]*axLen)
+    ]);
+    const mat = new THREE.LineBasicMaterial({color:colors[i], transparent:true, opacity:0.6});
+    persistent.add(new THREE.Line(geo,mat));
+    
+    // Etiqueta del eje
+    const label = makeAxisLabel(labels[i], '#' + colors[i].toString(16).padStart(6,'0'));
+    label.position.set(d[0]*(axLen+1.5), d[1]*(axLen+1.5), d[2]*(axLen+1.5));
+    persistent.add(label);
+  });
+  updateCamera();
+}
+
+function clearDynamic(){
+  dynamicObjects.forEach(o=>{
+    scene.remove(o);
+    if(o.geometry) o.geometry.dispose();
+    if(o.material) { if(o.material.map) o.material.map.dispose(); o.material.dispose(); }
+  });
+  dynamicObjects = [];
+}
+
+/* --- DIBUJO DE GEOMETRÍA --- */
+function addR2Line(a, b, c, color, opacity = 1, dashed = false) {
+  const pts = [];
+  if(Math.abs(b) > EPS) {
+    pts.push(new THREE.Vector3(-15, (c - a*(-15))/b, 0));
+    pts.push(new THREE.Vector3(15, (c - a*(15))/b, 0));
+  } else if(Math.abs(a) > EPS) {
+    pts.push(new THREE.Vector3(c/a, -15, 0));
+    pts.push(new THREE.Vector3(c/a, 15, 0));
+  } else return;
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = dashed 
+    ? new THREE.LineDashedMaterial({color, transparent:true, opacity, dashSize:0.5, gapSize:0.3, linewidth: 3})
+    : new THREE.LineBasicMaterial({color, transparent:true, opacity, linewidth:3});
+  const line = new THREE.Line(geo,mat);
+  if(dashed) line.computeLineDistances();
+  scene.add(line); dynamicObjects.push(line);
+}
+
+function addR3Plane(a,b,c,d,color,opacity){
+  const n = new THREE.Vector3(a,b,c);
+  const len = n.length();
+  if(len < EPS) return;
+  const nn = n.clone().normalize();
+  const center = nn.clone().multiplyScalar(d/len);
+  const helper = Math.abs(nn.x) < 0.9 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(0,1,0);
+  const u = new THREE.Vector3().crossVectors(nn, helper).normalize();
+  const v = new THREE.Vector3().crossVectors(nn, u).normalize();
+  
+  const geo = new THREE.PlaneGeometry(16,16);
+  const mat = new THREE.MeshBasicMaterial({color, transparent:true, opacity, side:THREE.DoubleSide, depthWrite:false});
+  const mesh = new THREE.Mesh(geo,mat);
+  const m4 = new THREE.Matrix4().makeBasis(u,v,nn);
+  mesh.quaternion.setFromRotationMatrix(m4);
+  mesh.position.copy(center);
+  scene.add(mesh); dynamicObjects.push(mesh);
+  
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({color, transparent:true, opacity: Math.min(opacity+0.3, 1)}));
+  wire.quaternion.copy(mesh.quaternion); wire.position.copy(mesh.position);
+  scene.add(wire); dynamicObjects.push(wire);
+}
+
+function addPoint(p, color) {
+  const geo = new THREE.SphereGeometry(0.3, 24, 24);
+  const mat = new THREE.MeshBasicMaterial({color});
+  const mesh = new THREE.Mesh(geo,mat);
+  mesh.position.set(p[0], p[1], p[2] || 0);
+  scene.add(mesh); dynamicObjects.push(mesh);
+}
+
+function addLine3D(point, dir, color) {
+  const len = 25;
+  const p0 = new THREE.Vector3(point[0]-dir[0]*len, point[1]-dir[1]*len, point[2]-dir[2]*len);
+  const p1 = new THREE.Vector3(point[0]+dir[0]*len, point[1]+dir[1]*len, point[2]+dir[2]*len);
+  const geo = new THREE.BufferGeometry().setFromPoints([p0,p1]);
+  const mat = new THREE.LineDashedMaterial({color, dashSize: 0.5, gapSize: 0.3, linewidth: 3});
+  const line = new THREE.Line(geo,mat);
+  line.computeLineDistances();
+  scene.add(line); dynamicObjects.push(line);
+}
+
+function gramSchmidt(v1,v2){
+  const a = new THREE.Vector3(...v1);
+  let b = new THREE.Vector3(...v2);
+  const an = a.clone().normalize();
+  const proj = an.clone().multiplyScalar(b.dot(an));
+  b = b.clone().sub(proj);
+  if(b.length()<1e-6) b = new THREE.Vector3().crossVectors(an, Math.abs(an.x)<0.9?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0));
+  return {u: an, v: b.normalize()};
+}
+
+function addSolutionPlane3D(p, v1, v2){
+  const {u,v} = gramSchmidt(v1,v2);
+  const nn = new THREE.Vector3().crossVectors(u,v).normalize();
+  const geo = new THREE.PlaneGeometry(16,16);
+  const mat = new THREE.MeshBasicMaterial({color:SOL_COLOR, transparent:true, opacity:0.6, side:THREE.DoubleSide, depthWrite:false});
+  const mesh = new THREE.Mesh(geo,mat);
+  const m4 = new THREE.Matrix4().makeBasis(u,v,nn);
+  mesh.quaternion.setFromRotationMatrix(m4);
+  mesh.position.set(p[0],p[1],p[2]);
+  scene.add(mesh); dynamicObjects.push(mesh);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(!dragging && currentDim===3) theta += 0.0015;
+  updateCamera();
+  renderer.render(scene,camera);
+}
+animate();
+
+/* --- LÓGICA DE PASOS --- */
+function recomputeSystem() {
+  const M = readMatrix();
+  systemState.matrix = M;
+  systemState.result = solveSystem(M);
+  systemState.maxSteps = currentDim === 2 ? 3 : (currentDim === 3 ? 5 : 2);
+  goToStep(systemState.step);
+}
+
+function renderR2(step) {
+  const sys = systemState.matrix;
+  const isFinal = (step === 2);
+  const dim = isFinal ? 0.3 : 1.0; 
+  
+  if(step>=1) addR2Line(sys[0][0], sys[0][1], sys[0][2], COLORS[0], dim);
+  if(step>=2) addR2Line(sys[1][0], sys[1][1], sys[1][2], COLORS[1], dim);
+  
+  if(isFinal) {
+    const r = systemState.result;
+    if(r.type === 'unique') addPoint(r.particular, SOL_COLOR);
+    else if(r.type === 'infinite') addR2Line(sys[0][0], sys[0][1], sys[0][2], SOL_COLOR, 1, true); // Línea amarilla
+  }
+}
+
+function renderR3(step) {
+  const sys = systemState.matrix;
+  const isFinal = (step === 4);
+  const dim = isFinal ? 0.15 : 0.45;
+  
+  if(step>=1) addR3Plane(...sys[0], COLORS[0], dim);
+  if(step>=2) addR3Plane(...sys[1], COLORS[1], dim);
+  if(step>=3) addR3Plane(...sys[2], COLORS[2], dim);
+  
+  if(isFinal) {
+    const r = systemState.result;
+    if(r.type === 'unique') {
+      addPoint(r.particular, SOL_COLOR);
+    } else if(r.type === 'infinite') {
+      if(r.rankA === 2) addLine3D(r.particular, r.directions[0], SOL_COLOR);
+      if(r.rankA === 1) addSolutionPlane3D(r.particular, r.directions[0], r.directions[1]);
+    }
+  }
+}
+
+function getCaption(step) {
+  if(currentDim === 4) {
+    if(step===0) return "En ℝ⁴ no podemos visualizar gráficamente los hiperplanos. Presiona Siguiente para ver la resolución analítica.";
+    return "Resultado algebraico calculado por eliminación de Gauss-Jordan.";
+  }
+  if(currentDim === 2) {
+    if(step===0) return 'Cada ecuación representa una recta en el plano 2D. Presiona Siguiente.';
+    if(step===1) return 'Primera ecuación trazada. Todos sus puntos son soluciones válidas.';
+    if(step===2) return 'La intersección (en amarillo) representa la solución simultánea del sistema.';
+  }
+  if(currentDim === 3) {
+    if(step===0) return 'Cada ecuación describe un plano en ℝ³.';
+    if(step===1) return 'Primer plano trazado.';
+    if(step===2) return 'Segundo plano. Dos planos no paralelos se cortan en una recta.';
+    if(step===3) return 'Tercer plano añadido. ¿Dónde se cruzan los tres?';
+    if(step===4) return 'Intersección global (en amarillo) que satisface simultáneamente todo el sistema.';
+  }
+}
+
+function showClassification() {
+  const r = systemState.result;
+  const box = document.getElementById('classification');
+  const elc = document.getElementById('class-type');
+  const eld = document.getElementById('class-detail');
+  box.classList.add('show');
+  
+  if(r.type==='unique') { 
+    elc.textContent = 'Sistema Compatible Determinado'; 
+    eld.textContent = 'Existe una solución única. Los objetos geométricos se intersecan en un solo punto exacto (resaltado en amarillo).'; 
+  } else if(r.type==='infinite') { 
+    elc.textContent = 'Sistema Compatible Indeterminado'; 
+    eld.textContent = 'Existen infinitas soluciones (grados de libertad). La intersección geométrica forma una línea continua o un plano superpuesto (resaltado en amarillo).'; 
+  } else { 
+    elc.textContent = 'Sistema Incompatible'; 
+    eld.textContent = 'No hay solución que satisfaga todas las ecuaciones a la vez. Geométricamente, no hay ningún punto en el espacio donde todas las figuras coincidan simultáneamente.'; 
+  }
+}
+
+function goToStep(n) {
+  systemState.step = Math.max(0, Math.min(systemState.maxSteps-1, n));
+  clearDynamic();
+  
+  if(currentDim===2) renderR2(systemState.step);
+  else if(currentDim===3) renderR3(systemState.step);
+  
+  document.getElementById('caption').textContent = getCaption(systemState.step);
+  document.getElementById('step-indicator').textContent = `Paso ${systemState.step+1}/${systemState.maxSteps}`;
+  document.getElementById('btn-prev').disabled = systemState.step===0;
+  document.getElementById('btn-next').disabled = systemState.step===systemState.maxSteps-1;
+  
+  const box = document.getElementById('classification');
+  const btnPdf = document.getElementById('btn-pdf');
+  
+  if(systemState.step === systemState.maxSteps-1) {
+    showClassification();
+    btnPdf.hidden = false;
+  } else {
+    box.classList.remove('show');
+    btnPdf.hidden = true;
+  }
+}
+
+/* --- EVENTOS UI --- */
+
+/* --- COMUNICACIÓN CON PYTHON --- */
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  // 1. Leemos la matriz actual
+  const matrizActual = readMatrix();
+  
+  // 2. Enviamos la matriz a Python usando el puente de Streamlit
+  window.parent.postMessage({
+    isStreamlitMessage: true,
+    type: "setComponentValue",
+    value: matrizActual
+  }, "*");
+  
+  // Cambiar el texto del botón para dar feedback al usuario
+  const btnPdf = document.getElementById('btn-pdf');
+  btnPdf.textContent = "Generando PDF con IA...";
+  btnPdf.style.background = "#8c92a4";
+});
+  
+document.getElementById('btn-solve').addEventListener('click', ()=>{
+  document.getElementById('step-section').hidden = false;
+  systemState.step = 0;
+  recomputeSystem();
+});
+
+document.getElementById('btn-next').addEventListener('click', ()=> goToStep(systemState.step+1));
+document.getElementById('btn-prev').addEventListener('click', ()=> goToStep(systemState.step-1));
+
+// Reset Flow
+const modal = document.getElementById('modal-overlay');
+document.getElementById('btn-reset-app').addEventListener('click', () => modal.style.display = 'flex');
+document.getElementById('btn-no').addEventListener('click', () => modal.style.display = 'none');
+document.getElementById('btn-yes').addEventListener('click', () => {
+  modal.style.display = 'none';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('splash').style.display = 'flex';
+  document.getElementById('step-section').hidden = true;
+  clearDynamic();
+});
+
+/* --- MENÚ DE REPASO --- */
+const reviewButton = document.getElementById('btn-review');
+const reviewMenu = document.getElementById('review-menu');
+
+reviewButton.addEventListener('click', (e) => {
+  e.stopPropagation(); // Evitar que el click cierre inmediatamente el menú
+  reviewMenu.classList.toggle('show');
+});
+
+// Cerrar el menú si se hace clic fuera de él
+document.addEventListener('click', (e) => {
+  if (!reviewMenu.contains(e.target) && e.target !== reviewButton) {
+    reviewMenu.classList.remove('show');
+  }
+});
+
+function openReview(method) {
+  const urls = {
+    gauss: 'https://github.com/SrvCanales/Sistemas-de-ecuaciones-lineales/blob/main/pdf/_Repaso__Gauss_Jordan.pdf',
+    cramer: '#',   // Sustituir por URL real
+    inversa: '#'   // Sustituir por URL real
+  };
+  
+  if(urls[method] !== '#') {
+    window.open(urls[method], '_blank');
+  } else {
+    alert("Enlace PDF en construcción.");
+  }
+}
+</script>
+</body>
+</html>
