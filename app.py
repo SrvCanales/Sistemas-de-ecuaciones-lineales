@@ -8,7 +8,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-HTML_FILE = Sistemas-de-ecuaciones-lineales / "frontend" / "index.html"
+HTML_FILE = "Sistemas-de-ecuaciones-lineales" / "frontend" / "index.html"
 
 # 1. Declarar el componente conectándolo a la carpeta 'frontend'
 # Esto crea una función que renderizará tu HTML y retornará lo que JS envíe
