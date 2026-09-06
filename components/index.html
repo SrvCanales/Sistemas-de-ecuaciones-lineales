@@ -740,6 +740,25 @@ function goToStep(n) {
 }
 
 /* --- EVENTOS UI --- */
+
+/* --- COMUNICACIÓN CON PYTHON --- */
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  // 1. Leemos la matriz actual
+  const matrizActual = readMatrix();
+  
+  // 2. Enviamos la matriz a Python usando el puente de Streamlit
+  window.parent.postMessage({
+    isStreamlitMessage: true,
+    type: "setComponentValue",
+    value: matrizActual
+  }, "*");
+  
+  // Cambiar el texto del botón para dar feedback al usuario
+  const btnPdf = document.getElementById('btn-pdf');
+  btnPdf.textContent = "Generando PDF con IA...";
+  btnPdf.style.background = "#8c92a4";
+});
+  
 document.getElementById('btn-solve').addEventListener('click', ()=>{
   document.getElementById('step-section').hidden = false;
   systemState.step = 0;
