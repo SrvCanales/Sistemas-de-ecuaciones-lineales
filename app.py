@@ -8,6 +8,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+HTML_FILE = BASE_DIR / "frontend" / "index.html"
+
 # 1. Declarar el componente conectándolo a la carpeta 'frontend'
 # Esto crea una función que renderizará tu HTML y retornará lo que JS envíe
 visualizador_planos = components.declare_component(
