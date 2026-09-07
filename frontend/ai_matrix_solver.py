@@ -8,7 +8,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         genai.configure(api_key=api_key)
         
         # Modelo eficiente
-        modelo = genai.GenerativeModel('gemini-1.5-flash') 
+        modelo = genai.GenerativeModel('gemini-pro') 
 
         # 2. Prompt LATEX
         prompt = f"""
