@@ -741,41 +741,6 @@ function goToStep(n) {
 }
 
 /* --- EVENTOS UI --- */
-
-/* --- COMUNICACIÓN CON PYTHON --- */
-document.getElementById('btn-pdf').addEventListener('click', () => {
-  // 1. Leemos la matriz actual
-  const matrizActual = readMatrix();
-  
-  // 2. Enviamos la matriz a Python usando el puente de Streamlit
-  window.parent.postMessage({
-    isStreamlitMessage: true,
-    type: "setComponentValue",
-    value: matrizActual
-  }, "*");
-  
-  // Cambiar el texto del botón para dar feedback al usuario
-  const btnPdf = document.getElementById('btn-pdf');
-  btnPdf.textContent = "Generando PDF con IA...";
-  btnPdf.style.background = "#8c92a4";
-});
-
-try {
-    // 3. LLAMAMOS A LA FUNCIÓN DE TU ARCHIVO ai_matrix_solver.js
-    // Reemplaza "generarPdfConIA" por el nombre real de tu función
-    await generarPdfConIA(matrizActual); 
-    
-  } catch (error) {
-    console.error("Error al generar el PDF:", error);
-    alert("Hubo un error al generar el PDF con la IA.");
-  } finally {
-    // 4. Restauramos el botón a su estado normal
-    btnPdf.textContent = textoOriginal;
-    btnPdf.style.background = "#3a4052";
-    btnPdf.disabled = false;
-  }
-});
-  
 document.getElementById('btn-solve').addEventListener('click', ()=>{
   document.getElementById('step-section').hidden = false;
   systemState.step = 0;
@@ -802,11 +767,10 @@ const reviewButton = document.getElementById('btn-review');
 const reviewMenu = document.getElementById('review-menu');
 
 reviewButton.addEventListener('click', (e) => {
-  e.stopPropagation(); // Evitar que el click cierre inmediatamente el menú
+  e.stopPropagation();
   reviewMenu.classList.toggle('show');
 });
 
-// Cerrar el menú si se hace clic fuera de él
 document.addEventListener('click', (e) => {
   if (!reviewMenu.contains(e.target) && e.target !== reviewButton) {
     reviewMenu.classList.remove('show');
@@ -816,8 +780,8 @@ document.addEventListener('click', (e) => {
 function openReview(method) {
   const urls = {
     gauss: 'https://github.com/SrvCanales/Sistemas-de-ecuaciones-lineales/blob/main/pdf/_Repaso__Gauss_Jordan.pdf',
-    cramer: '#',   // Sustituir por URL real
-    inversa: '#'   // Sustituir por URL real
+    cramer: '#',
+    inversa: '#'
   };
   
   if(urls[method] !== '#') {
@@ -833,7 +797,7 @@ function openReview(method) {
 window.parent.postMessage({ type: "streamlit:componentReady", apiVersion: 1 }, "*");
 window.parent.postMessage({ type: "streamlit:setFrameHeight", height: 850 }, "*");
 
-// 2. Evento del botón para enviar la matriz
+// 2. Evento del botón para enviar la matriz a Python
 document.getElementById('btn-pdf').addEventListener('click', () => {
   const matrizActual = readMatrix();
   
@@ -846,7 +810,7 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
   
   // Cambiamos el texto del botón
   const btnPdf = document.getElementById('btn-pdf');
-  btnPdf.textContent = "Generando PDF con IA...";
+  btnPdf.textContent = "Enviando datos al servidor...";
   btnPdf.style.background = "#8c92a4";
   btnPdf.disabled = true;
 });
