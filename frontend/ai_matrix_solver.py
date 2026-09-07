@@ -1,15 +1,11 @@
-import google as genai
-from google.genai import types
+from google import genai
 import subprocess
 import os
 
 def generar_pdf_con_gemini(matriz, api_key):
     try:
-        # 1. Proveedor
-        client = genai.Client(api_key="api_key")
-        
-        # Modelo eficiente
-        modelo = genai.GenerativeModel('gemini-pro') 
+        # 1. Proveedor: Inicializamos el cliente pasando la VARIABLE api_key (sin comillas)
+        client = genai.Client(api_key=api_key)
 
         # 2. Prompt LATEX
         prompt = f"""
@@ -22,22 +18,27 @@ def generar_pdf_con_gemini(matriz, api_key):
         No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
         """
 
-        # 3. Llamar a la API
-        respuesta = modelo.generate_content(prompt)
+        # 3. Llamar a la API usando la SINTAXIS NUEVA
+        # El modelo se indica directamente dentro de generate_content
+        respuesta = client.models.generate_content(
+            model='gemini-2.5-flash', # Puedes usar gemini-1.5-flash o gemini-pro
+            contents=prompt
+        )
+        
         contenido_latex = respuesta.text.replace("```latex", "").replace("```", "") # Limpieza por seguridad
 
         # 4. Ensamblar el documento LaTeX completo
         documento_completo = r"""
-        \documentclass[12pt]{article}
-        \usepackage[utf8]{inputenc}
-        \usepackage[spanish]{babel}
-        \usepackage{amsmath, amssymb}
-        \usepackage[margin=2.5cm]{geometry}
-        \begin{document}
-        \section*{Resolución del Sistema}
-        """ + contenido_latex + r"""
-        \end{document}
-        """
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage[margin=2.5cm]{geometry}
+\begin{document}
+\section*{Resolución del Sistema}
+""" + contenido_latex + r"""
+\end{document}
+"""
 
         # 5. Guardar el archivo .tex temporal
         with open("temp_resolucion.tex", "w", encoding="utf-8") as f:
