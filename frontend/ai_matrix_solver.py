@@ -12,16 +12,8 @@ def generar_pdf_con_gemini(matriz, api_key):
         prompt = f"""
         Resuelve ordenadamente el siguiente sistema de ecuaciones representado por esta matriz ampliada:
         {matriz}
-
-        REGLAS ESTRICTAS DE FORMATO:
-        1. Tu respuesta debe ser ÚNICAMENTE código LaTeX válido. Cero comentarios fuera del código.
-        2. NO uses bloques de código markdown (```latex ... ```). Escribe el código directamente.
-        3. NO incluyas \\documentclass, ni \\usepackage, ni \\begin{{document}} ni \\end{{document}}.
-        4. Utiliza únicamente los paquetes estándar de amsmath y amssymb (ej. pmatrix, bmatrix, align*).
-        5. NO uses comandos que requieran otros paquetes extras (como \\cancel, \\color, \\systeme).
-        6. Asegúrate de cerrar correctamente todas las llaves y entornos.
         
-        REGLA ESTRICTA: Sé breve y directo. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
+        REGLA ESTRICTA: Muestra el procedimiento como seguidilla de transformaciones elementales por filas, con breves anotaciones de texto explicativas. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
         No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
         """
