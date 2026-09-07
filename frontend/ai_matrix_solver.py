@@ -3,7 +3,7 @@ from google.genai import types
 import subprocess
 import os
 
-def generar_pdf_con_gemini(matriz, api_key):
+def generar_pdf_con_gemini(matriz, solucion, api_key):
     try:
         # 1. Proveedor: Inicializamos el cliente pasando la VARIABLE api_key (sin comillas)
         client = genai.Client(api_key=api_key)
