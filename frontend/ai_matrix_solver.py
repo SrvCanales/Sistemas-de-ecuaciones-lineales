@@ -1,4 +1,4 @@
-import google-genai as genai
+import google as genai
 import subprocess
 import os
 
