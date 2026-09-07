@@ -13,7 +13,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         Resuelve ordenadamente el siguiente sistema de ecuaciones representado por esta matriz ampliada:
         {matriz}
         
-        REGLA ESTRICTA: Muestra el procedimiento como seguidilla de transformaciones elementales por filas, con breves anotaciones de texto explicativas. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
+        REGLA ESTRICTA: Muestra el procedimiento en base al método Gauss Jordan. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
         No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
         """
