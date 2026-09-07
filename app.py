@@ -38,8 +38,8 @@ if matriz_recibida is not None:
     st.info("Generando explicación detallada con IA... Esto puede tardar unos segundos.")
     
     with st.spinner('Procesando matemáticas y compilando PDF...'):
-        # La variable GEMINI_API_KEY ahora sí existe
-        pdf_generado = generar_pdf_con_gemini(matriz_recibida, GEMINI_API_KEY)
+        # Ahora recibimos dos variables
+        pdf_generado, mensaje_error = generar_pdf_con_gemini(matriz_recibida, GEMINI_API_KEY)
         
     if pdf_generado:
         st.success("¡Procedimiento generado con éxito!")
@@ -50,4 +50,5 @@ if matriz_recibida is not None:
             mime="application/pdf"
         )
     else:
-        st.error("Hubo un problema al generar el PDF.")
+        # Aquí veremos exactamente qué fue lo que colapsó
+        st.error(f"Hubo un problema al generar el PDF. Error técnico: {mensaje_error}")
