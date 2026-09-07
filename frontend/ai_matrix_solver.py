@@ -30,9 +30,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         # El modelo se indica directamente dentro de generate_content
         respuesta = client.models.generate_content(
             model='gemini-3.1-flash-lite', # Puedes usar gemini-1.5-flash o gemini-pro
-            contents=prompt,
-            config=types.GenerateContentConfig(
-        temperature=0.3)  # Elige un valor entre 0.0 y 2.0
+            contents=prompt
         )
         
         # Doble limpieza por si la IA ignora la regla 2
