@@ -845,18 +845,28 @@ window.parent.postMessage({
 document.getElementById('btn-pdf').addEventListener('click', () => {
   const matrizActual = readMatrix();
   
-  // Enviamos la matriz usando el comando oficial de Streamlit
+  // Extraemos la solución que JS ya calculó para enviarla como "ancla"
+  let solucionEsperada = "";
+  if (systemState.result.type === 'unique') {
+     // Crea un texto tipo: "x = 2, y = -1, z = 4"
+     solucionEsperada = "Solución única: " + systemState.result.particular.map((val, idx) => `${VAR_SYMS[idx]} = ${val}`).join(", ");
+  } else if (systemState.result.type === 'infinite') {
+     solucionEsperada = "Sistema Compatible Indeterminado (infinitas soluciones).";
+  } else {
+     solucionEsperada = "Sistema Incompatible (no tiene solución).";
+  }
+  
+  // Enviamos AMBOS datos a Python dentro del valor
   window.parent.postMessage({
     isStreamlitMessage: true,
     type: "streamlit:setComponentValue",
-    value: matrizActual
+    value: { matriz: matrizActual, solucion: solucionEsperada } // <--- EL CAMBIO CLAVE
   }, "*");
   
-  // Cambiamos el texto del botón visualmente
-  const btn = document.getElementById('btn-pdf');
-  btn.textContent = "Enviando datos al servidor...";
-  btn.style.background = "#8c92a4";
-  btn.disabled = true;
+  const btnPdf = document.getElementById('btn-pdf');
+  btnPdf.textContent = "Enviando datos al servidor...";
+  btnPdf.style.background = "#8c92a4";
+  btnPdf.disabled = true;
 });
 
 </script>
