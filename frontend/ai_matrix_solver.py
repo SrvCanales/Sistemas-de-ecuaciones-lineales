@@ -22,6 +22,8 @@ def generar_pdf_con_gemini(matriz, api_key):
         6. Asegúrate de cerrar correctamente todas las llaves y entornos.
         7. Tu respuesta debe ser de izquierda a derecha, de arriba a abajo, respetando los márgenes de la página
 
+        REQUISITO NO NEGOCIABLE = EVITA A TODA COSTA ERRORES MATEMÁTICOS. REVISA EL DESARROLLO UNA VEZ LISTO PARA EVITAR ERRORES. REINICIA DE SER NECESARIO
+
         REGLA ESTRICTA: Muestra el procedimiento en base al método Gauss Jordan. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
         No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
