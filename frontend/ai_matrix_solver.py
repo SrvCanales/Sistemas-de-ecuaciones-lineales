@@ -1,4 +1,5 @@
 import google as genai
+from google.genai import types
 import subprocess
 import os
 
