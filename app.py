@@ -1,7 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import sys
+import os
 from pathlib import Path
-from ai_matrix_solver import generar_pdf_con_gemini 
+from frontend.ai_matrix_solver import generar_pdf_con_gemini 
 
 st.set_page_config(
     page_title="Guía - Sistemas de ecuaciones lineales",
