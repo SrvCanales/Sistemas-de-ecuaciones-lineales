@@ -10,11 +10,10 @@ def generar_pdf_con_gemini(matriz, api_key):
 
         # 2. Prompt LATEX
         prompt = f"""
-        Actúa como un profesor de álgebra lineal. 
-        Resuelve paso a paso el siguiente sistema de ecuaciones representado por esta matriz ampliada:
+        Resuelve ordenadamente el siguiente sistema de ecuaciones representado por esta matriz ampliada:
         {matriz}
         
-        REGLA ESTRICTA: Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
+        REGLA ESTRICTA: Sé breve y directo. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
         No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
         """
@@ -22,7 +21,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         # 3. Llamar a la API usando la SINTAXIS NUEVA
         # El modelo se indica directamente dentro de generate_content
         respuesta = client.models.generate_content(
-            model='gemini-3.1-pro-preview', # Puedes usar gemini-1.5-flash o gemini-pro
+            model='gemini-2.5-flash', # Puedes usar gemini-1.5-flash o gemini-pro
             contents=prompt,
             config=types.GenerateContentConfig(
         temperature=0.3)  # Elige un valor entre 0.0 y 2.0
