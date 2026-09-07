@@ -22,7 +22,7 @@ except KeyError:
 try:
     visualizador_planos = components.declare_component(
         "visualizador_planos",
-        path="ruta_frontend" 
+        path=ruta_frontend
     )
     
     # Usamos el nombre correcto de la variable declarada arriba
