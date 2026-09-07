@@ -826,6 +826,31 @@ function openReview(method) {
     alert("Enlace PDF en construcción.");
   }
 }
+
+/* --- COMUNICACIÓN CON PYTHON (STREAMLIT) --- */
+
+// 1. Le decimos a Streamlit que el HTML ya cargó y qué altura necesitamos
+window.parent.postMessage({ type: "streamlit:componentReady", apiVersion: 1 }, "*");
+window.parent.postMessage({ type: "streamlit:setFrameHeight", height: 850 }, "*");
+
+// 2. Evento del botón para enviar la matriz
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  const matrizActual = readMatrix();
+  
+  // Enviamos la matriz usando el comando oficial de Streamlit
+  window.parent.postMessage({
+    isStreamlitMessage: true,
+    type: "streamlit:setComponentValue",
+    value: matrizActual
+  }, "*");
+  
+  // Cambiamos el texto del botón
+  const btnPdf = document.getElementById('btn-pdf');
+  btnPdf.textContent = "Generando PDF con IA...";
+  btnPdf.style.background = "#8c92a4";
+  btnPdf.disabled = true;
+});
+
 </script>
 </body>
 </html>
