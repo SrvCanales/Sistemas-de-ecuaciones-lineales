@@ -21,7 +21,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         # 3. Llamar a la API usando la SINTAXIS NUEVA
         # El modelo se indica directamente dentro de generate_content
         respuesta = client.models.generate_content(
-            model='gemini-2.5-flash', # Puedes usar gemini-1.5-flash o gemini-pro
+            model='gemini-3.1-pro-preview', # Puedes usar gemini-1.5-flash o gemini-pro
             contents=prompt,
             config=types.GenerateContentConfig(
         temperature=0.3)  # Elige un valor entre 0.0 y 2.0
