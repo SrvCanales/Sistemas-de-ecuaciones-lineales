@@ -20,6 +20,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         4. Utiliza únicamente los paquetes estándar de amsmath y amssymb (ej. pmatrix, bmatrix, align*).
         5. NO uses comandos que requieran otros paquetes extras (como \\cancel, \\color, \\systeme).
         6. Asegúrate de cerrar correctamente todas las llaves y entornos.
+        7. Tu respuesta debe ser de izquierda a derecha, de arriba a abajo, respetando los márgenes de la página
 
         REGLA ESTRICTA: Muestra el procedimiento en base al método Gauss Jordan. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
