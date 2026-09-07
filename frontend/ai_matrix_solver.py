@@ -5,7 +5,7 @@ import os
 def generar_pdf_con_gemini(matriz, api_key):
     try:
         # 1. Proveedor
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key="api_key")
         
         # Modelo eficiente
         modelo = genai.GenerativeModel('gemini-pro') 
