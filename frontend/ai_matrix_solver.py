@@ -58,8 +58,8 @@ def generar_pdf_con_gemini(matriz, api_key):
             if os.path.exists(f"temp_resolucion{ext}"):
                 os.remove(f"temp_resolucion{ext}")
 
-        return pdf_bytes
+        return pdf_bytes, None # Si todo sale bien, devuelve el PDF y "Ningún error"
 
     except Exception as e:
-        print(f"Error generando el PDF: {e}")
-        return None
+        # Si algo falla, devuelve None para el PDF y el mensaje del error
+        return None, str(e)
