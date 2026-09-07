@@ -22,9 +22,9 @@ try:
     path="frontend" 
 )
     matriz_recibida = visualizador() # Aquí se guarda lo que JS envíe
-except Exception as e:
-    st.error("Error cargando la interfaz gráfica.")
-    matriz_recibida = None
+#except Exception as e:
+ #   st.error("Error cargando la interfaz gráfica.")
+  #  matriz_recibida = None
 
 if matriz_recibida is not None:
     st.info("Generando explicación detallada con IA... Esto puede tardar unos segundos.")
