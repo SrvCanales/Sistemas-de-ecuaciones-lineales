@@ -792,11 +792,21 @@ function openReview(method) {
 
 /* --- COMUNICACIÓN CON PYTHON (STREAMLIT) --- */
 
-// 1. Le decimos a Streamlit que el HTML ya cargó y qué altura necesitamos
-window.parent.postMessage({ type: "streamlit:componentReady", apiVersion: 1 }, "*");
-window.parent.postMessage({ type: "streamlit:setFrameHeight", height: 850 }, "*");
+// 1. Le decimos a Streamlit que el HTML ya cargó (¡Ahora con la autorización correcta!)
+window.parent.postMessage({ 
+  isStreamlitMessage: true, 
+  type: "streamlit:componentReady", 
+  apiVersion: 1 
+}, "*");
 
-// 2. Evento del botón para enviar la matriz a Python
+// 2. Le pedimos el espacio necesario en pantalla
+window.parent.postMessage({ 
+  isStreamlitMessage: true, 
+  type: "streamlit:setFrameHeight", 
+  height: 850 
+}, "*");
+
+// 3. Evento del botón para enviar la matriz a Python
 document.getElementById('btn-pdf').addEventListener('click', () => {
   const matrizActual = readMatrix();
   
@@ -807,7 +817,7 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
     value: matrizActual
   }, "*");
   
-  // Cambiamos el texto del botón
+  // Cambiamos el texto del botón visualmente
   const btnPdf = document.getElementById('btn-pdf');
   btnPdf.textContent = "Enviando datos al servidor...";
   btnPdf.style.background = "#8c92a4";
