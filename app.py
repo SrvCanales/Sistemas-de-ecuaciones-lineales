@@ -20,8 +20,7 @@ except KeyError:
     st.stop()
 
 
-# ---  SISTEMA DE MEMORIA (CACHÉ) ---
-# Evita que el PDF se regenere desde cero al presionar "Descargar"
+# --- SISTEMA DE MEMORIA (CACHÉ) ---
 if 'ultima_matriz' not in st.session_state:
     st.session_state.ultima_matriz = None
 if 'ultimo_pdf' not in st.session_state:
@@ -29,36 +28,23 @@ if 'ultimo_pdf' not in st.session_state:
 if 'mensaje_error' not in st.session_state:
     st.session_state.mensaje_error = ""
 
-# --- . COMUNICACIÓN INVERSA CON HTML ---
-# Función que se ejecuta tras descargar para reiniciar el frontend
-def resetear_boton_html():
-    st.session_state.enviar_reset = True
-
-# Si hay orden de reiniciar, inyectamos un script invisible
-if st.session_state.get('enviar_reset', False):
-    components.html("<script>window.parent.postMessage({type: 'reset_pdf_button'}, '*');</script>", height=0)
-    st.session_state.enviar_reset = False
-
-# --- . CARGA DE INTERFAZ GRÁFICA ---
-
-# 2. Declaramos e instanciamos el componente con el MISMO nombre
+# --- CARGA DE INTERFAZ GRÁFICA ---
 try:
     visualizador_planos = components.declare_component(
         "visualizador_planos",
         path=ruta_frontend
     )
     
-    # Usamos el nombre correcto de la variable declarada arriba
-    matriz_recibida = visualizador_planos() 
+    # IMPORTANTE: Le añadimos un 'key' para que Streamlit mantenga estable la memoria de la interfaz
+    matriz_recibida = visualizador_planos(key="interfaz_principal") 
     
 except Exception as e:
-    # Ahora imprimimos el error real (e) por si ocurre algo más
     st.error(f"Error cargando la interfaz gráfica: {e}")
     matriz_recibida = None
 
-# --- . LÓGICA DE IA Y REINTENTOS ---
+# --- LÓGICA DE IA Y REINTENTOS ---
 if matriz_recibida is not None:
-    # Solo generamos si la matriz ingresada es NUEVA o si el botón forzó el recálculo
+    # Solo generamos si la matriz ingresada es NUEVA
     if matriz_recibida != st.session_state.ultima_matriz:
         st.session_state.ultima_matriz = matriz_recibida
         st.session_state.ultimo_pdf = None
@@ -66,8 +52,6 @@ if matriz_recibida is not None:
         st.info("Generando explicación detallada con IA... Esto puede tardar unos segundos.")
         
         with st.spinner('Procesando matemáticas y compilando PDF...'):
-            
-            # BUCLE DE REINTENTOS: Intenta hasta 3 veces si la API está saturada
             max_intentos = 3
             for intento in range(max_intentos):
                 pdf_gen, error_msg = generar_pdf_con_gemini(matriz_recibida, GEMINI_API_KEY)
@@ -78,21 +62,17 @@ if matriz_recibida is not None:
                     break # Éxito, salimos del bucle
                 else:
                     st.session_state.mensaje_error = error_msg
-                    time.sleep(3) # Pausa de 3 segundos antes del siguiente intento
-        
-        # Al terminar (con éxito o fallo), ordenamos al botón de JS que se desbloquee
-        components.html("<script>window.parent.postMessage({type: 'reset_pdf_button'}, '*');</script>", height=0)
+                    time.sleep(3) # Pausa antes de reintentar
 
-    # --- . RESULTADO ---
-    # Mostramos el botón basado en lo que hay en memoria, para que la descarga sea instantánea
+    # --- RESULTADO ---
     if st.session_state.ultimo_pdf:
         st.success("¡Procedimiento generado con éxito!")
         st.download_button(
-            label="Descargar Procedimiento (PDF)",
+            label="📄 Descargar Procedimiento (PDF)",
             data=st.session_state.ultimo_pdf,
             file_name="Resolucion_Sistema_Lineal.pdf",
-            mime="application/pdf",
-            on_click=resetear_boton_html # Resetea el HTML tras descargar
+            mime="application/pdf"
+            # (Eliminamos el on_click problemático de aquí)
         )
     elif st.session_state.mensaje_error:
         st.error(f"Hubo un problema tras varios intentos automáticos. Error técnico: {st.session_state.mensaje_error}")
