@@ -824,7 +824,7 @@ window.parent.postMessage({
 }, "*");
 
 // 3. Evento del botón para enviar la matriz a Python
-document.getElementById('btn-').addEventListener('click', () => {
+document.getElementById('btn-pdf').addEventListener('click', () => {
   const matrizActual = readMatrix();
   
   // Enviamos la matriz usando el comando oficial de Streamlit
