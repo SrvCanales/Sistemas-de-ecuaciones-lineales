@@ -21,7 +21,7 @@ try:
     "visualizador_planos",
     path="frontend" 
 )
-    matriz_recibida = visualizador() # Aquí se guarda lo que JS envíe
+    matriz_recibida = visualizador_planos() # Aquí se guarda lo que JS envíe
 except Exception as e:
     st.error("Error cargando la interfaz gráfica.")
     matriz_recibida = None
