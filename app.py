@@ -17,7 +17,10 @@ BASE_DIR = Path(__file__).parent
 HTML_FILE = BASE_DIR / "frontend" / "index.html"
 
 try:
-    visualizador = components.declare_component(HTML_FILE)
+    visualizador_planos = components.declare_component(
+    "visualizador_planos",
+    path="frontend" 
+)
     matriz_recibida = visualizador() # Aquí se guarda lo que JS envíe
 except Exception as e:
     st.error("Error cargando la interfaz gráfica.")
