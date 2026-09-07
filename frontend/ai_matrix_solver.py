@@ -35,7 +35,8 @@ def generar_pdf_con_gemini(matriz, api_key):
         temperature=0.3)  # Elige un valor entre 0.0 y 2.0
         )
         
-        contenido_latex = respuesta.text.replace("```latex", "").replace("```", "") # Limpieza por seguridad
+        # Doble limpieza por si la IA ignora la regla 2
+        contenido_latex = respuesta.text.replace("```latex", "").replace("```", "").strip()
 
         # 4. Ensamblar el documento LaTeX completo
         documento_completo = r"""
