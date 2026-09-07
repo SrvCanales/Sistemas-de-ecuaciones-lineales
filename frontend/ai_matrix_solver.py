@@ -29,7 +29,7 @@ def generar_pdf_con_gemini(matriz, api_key):
         # 3. Llamar a la API usando la SINTAXIS NUEVA
         # El modelo se indica directamente dentro de generate_content
         respuesta = client.models.generate_content(
-            model='gemini-embedding-1', # Puedes usar gemini-1.5-flash o gemini-pro
+            model='gemini-embedding-001', # Puedes usar gemini-1.5-flash o gemini-pro
             contents=prompt
         )
         
