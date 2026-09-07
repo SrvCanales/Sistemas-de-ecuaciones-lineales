@@ -24,7 +24,7 @@ def generar_pdf_con_gemini(matriz, solucion, api_key):
 
         REQUISITO CLAVE = Tu desarrollo debe ser coherente con la solución {solucion}
 
-        REGLA ESTRICTA: Muestra el procedimiento en base al método Gauss Jordan. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
+        REGLA ESTRICTA: Obtén la forma escalonada a partir de la forma aumentada de la matriz. Luego resuelve cada ecuación resultante. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
         No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
         """
