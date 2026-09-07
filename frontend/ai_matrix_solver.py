@@ -51,7 +51,7 @@ def generar_pdf_con_gemini(matriz, solucion, api_key):
     REGLAS ESTRICTAS:
     1. Tu tarea es convertir este texto crudo en código LaTeX válido y elegante.
     2. NO alteres ningún número ni fracción. Usa exactamente las matrices provistas.
-    3. Escribe una frase explicativa esclarecedora entre cada matriz usando las operaciones indicadas (ej. Aplicamos $F_2 \\rightarrow F_2 - 2F_1$), interpretando el paso dado.
+    3. Escribe una frase explicativa pequeña entre cada matriz usando las operaciones indicadas (ej. Aplicamos $F_2 \\rightarrow F_2 - 2F_1$), interpretando brevemente el paso dado.
     4. Responde ÚNICAMENTE con el contenido LaTeX (sin \\documentclass ni preámbulos)
     5. Encasilla el resultado para cada incógnita, e interpreta la solución (sistema compatible determinado/indeterminado o incompatible y por qué es así)
     6. Comienza directamente con la resolución, no te presentes.
