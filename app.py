@@ -1,8 +1,5 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import sys
-import os
-from pathlib import Path
 from frontend.ai_matrix_solver import generar_pdf_con_gemini 
 
 st.set_page_config(
@@ -11,31 +8,38 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-headers = {"authorization": st.secrets["GEMINI_API_KEY"]}
+# 1. Definimos la llave directamente en una variable
+try:
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+except KeyError:
+    st.error("Falta la llave GEMINI_API_KEY en los secretos.")
+    st.stop()
 
-BASE_DIR = Path(__file__).parent
-HTML_FILE = BASE_DIR / "frontend" / "index.html"
-
+# 2. Declaramos e instanciamos el componente con el MISMO nombre
 try:
     visualizador_planos = components.declare_component(
-    "visualizador_planos",
-    path="frontend" 
-)
-    matriz_recibida = visualizador_planos() # Aquí se guarda lo que JS envíe
+        "visualizador_planos",
+        path="frontend" 
+    )
+    
+    # Usamos el nombre correcto de la variable declarada arriba
+    matriz_recibida = visualizador_planos() 
+    
 except Exception as e:
-    st.error("Error cargando la interfaz gráfica.")
+    # Ahora imprimimos el error real (e) por si ocurre algo más
+    st.error(f"Error cargando la interfaz gráfica: {e}")
     matriz_recibida = None
 
+# 3. Lógica de generación del PDF
 if matriz_recibida is not None:
     st.info("Generando explicación detallada con IA... Esto puede tardar unos segundos.")
     
     with st.spinner('Procesando matemáticas y compilando PDF...'):
-        # Llamamos a tu archivo solver
+        # La variable GEMINI_API_KEY ahora sí existe
         pdf_generado = generar_pdf_con_gemini(matriz_recibida, GEMINI_API_KEY)
         
     if pdf_generado:
         st.success("¡Procedimiento generado con éxito!")
-        # Botón nativo para que el usuario descargue el PDF
         st.download_button(
             label="Descargar Procedimiento (PDF)",
             data=pdf_generado,
