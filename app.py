@@ -26,7 +26,7 @@ components.html(
 )
 
 try:
-    visualizador = components.declare_component("visualizador_planos", path="frontend")
+    visualizador = components.declare_component(HTML_FILE)
     matriz_recibida = visualizador() # Aquí se guarda lo que JS envíe
 except Exception as e:
     st.error("Error cargando la interfaz gráfica.")
