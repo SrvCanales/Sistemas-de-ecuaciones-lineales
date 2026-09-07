@@ -2,32 +2,58 @@ from google import genai
 from google.genai import types
 import subprocess
 import os
+from fractions import Fraction
+
+def calcular_historial_gauss(matriz_entrada):
+    M = [[Fraction(val) for val in fila] for fila in matriz_entrada]
+    filas, cols = len(M), len(M[0])
+    historial = ["Matriz inicial:\n" + str([[str(c) for c in f] for f in M])]
+    
+    lead = 0
+    for r in range(filas):
+        if lead >= cols - 1: break
+        if M[r][lead] == 0:
+            for i in range(r + 1, filas):
+                if M[i][lead] != 0:
+                    M[r], M[i] = M[i], M[r]
+                    historial.append(f"Intercambio $F_{r+1} \\leftrightarrow F_{i+1}$:\n" + str([[str(c) for c in f] for f in M]))
+                    break
+        
+        pivote = M[r][lead]
+        if pivote != 0:
+            if pivote != 1:
+                M[r] = [x / pivote for x in M[r]]
+                historial.append(f"$F_{r+1} \\rightarrow \\frac{{1}}{{{pivote}}} F_{r+1}$:\n" + str([[str(c) for c in f] for f in M]))
+            
+            for k in range(filas):
+                if k != r and M[k][lead] != 0:
+                    factor = M[k][lead]
+                    M[k] = [M[k][j] - factor * M[r][j] for j in range(cols)]
+                    historial.append(f"$F_{k+1} \\rightarrow F_{k+1} - ({factor})F_{r+1}$:\n" + str([[str(c) for c in f] for f in M]))
+        lead += 1
+    return "\n\n".join(historial)
 
 def generar_pdf_con_gemini(matriz, solucion, api_key):
     try:
         # 1. Proveedor: Inicializamos el cliente pasando la VARIABLE api_key (sin comillas)
+
         client = genai.Client(api_key=api_key)
+
+        historial_exacto = calcular_historial_gauss(matriz)
 
         # 2. Prompt LATEX
         prompt = f"""
-        Resuelve ordenadamente el siguiente sistema de ecuaciones representado por esta matriz ampliada:
-        {matriz}
-
-         REGLAS ESTRICTAS DE FORMATO:
-        1. Tu respuesta debe ser ÚNICAMENTE código LaTeX válido. Cero comentarios fuera del código.
-        2. NO uses bloques de código markdown (```latex ... ```). Escribe el código directamente.
-        3. NO incluyas \\documentclass, ni \\usepackage, ni \\begin{{document}} ni \\end{{document}}.
-        4. Utiliza únicamente los paquetes estándar de amsmath y amssymb (ej. pmatrix, bmatrix, align*).
-        5. NO uses comandos que requieran otros paquetes extras (como \\cancel, \\color, \\systeme).
-        6. Asegúrate de cerrar correctamente todas las llaves y entornos.
-        7. Tu respuesta debe ser de izquierda a derecha, de arriba a abajo, respetando los márgenes de la página
-
-        REQUISITO CLAVE = Tu desarrollo debe ser coincidir completamente con la solución {solucion}. No aproximes las fracciones como decimal. Muestra explicitamente todas las operaciones por filas.
-
-        REGLA ESTRICTA: Obtén la forma escalonada a partir de la forma aumentada de la matriz. Luego resuelve cada ecuación resultante. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
-        No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
-        No incluyas el preámbulo (\\documentclass), solo el contenido del documento.
-        """
+    Eres un tipógrafo matemático experto en LaTeX.
+    A continuación, te entrego el historial EXACTO paso a paso de la resolución de un sistema de ecuaciones:
+    
+    {historial_exacto}
+    
+    REGLAS ESTRICTAS:
+    1. Tu única tarea es convertir este texto crudo en código LaTeX válido y elegante.
+    2. NO alteres ningún número ni fracción. Usa exactamente las matrices provistas.
+    3. Escribe una breve frase explicativa entre cada matriz usando las operaciones indicadas (ej. Aplicamos $F_2 \\rightarrow F_2 - 2F_1$).
+    4. Responde ÚNICAMENTE con el contenido LaTeX (sin \\documentclass ni preámbulos).
+    """
 
         # 3. Llamar a la API usando la SINTAXIS NUEVA
         # El modelo se indica directamente dentro de generate_content
