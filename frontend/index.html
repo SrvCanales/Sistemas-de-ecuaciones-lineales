@@ -779,16 +779,34 @@ document.addEventListener('click', (e) => {
 });
 
 function openReview(method) {
-  const urls = 
-    gauss: 'https://raw.githubusercontent.com/SrvCanales/Sistemas-de-ecuaciones-lineales/blob/main//_Repaso__Gauss_Jordan.pdf',
-    cramer: '#',
-    inversa: '#'
+  // 1. Definimos las rutas locales relativas a la carpeta frontend
+  // Asegúrate de que los nombres aquí coincidan con tus archivos reales
+  const files = {
+    gauss: 'pdf/Repaso_Gauss_Jordan.pdf',
+    cramer: 'pdf/Repaso_Cramer.pdf',
+    inversa: 'pdf/Repaso_Matriz_Inversa.pdf'
   };
   
-  if(urls[method] !== '#') {
-    window.open(urls[method], '_blank');
+  const fileUrl = files[method];
+  
+  if (fileUrl) {
+    // 2. Creamos un elemento <a> invisible
+    const enlaceInvisble = document.createElement('a');
+    enlaceInvisble.href = fileUrl;
+    
+    // 3. El atributo 'download' fuerza al navegador a descargarlo en lugar de abrirlo
+    // Extraemos automáticamente el nombre del archivo (ej. "Repaso_Cramer.pdf")
+    enlaceInvisble.download = fileUrl.split('/').pop(); 
+    
+    // 4. Lo inyectamos en la página, simulamos un clic y lo eliminamos
+    document.body.appendChild(enlaceInvisble);
+    enlaceInvisble.click();
+    document.body.removeChild(enlaceInvisble);
+    
+    // Cerramos el menú flotante tras hacer clic
+    document.getElementById('review-menu').classList.remove('show');
   } else {
-    alert("Enlace  en construcción.");
+    alert("Archivo no encontrado.");
   }
 }
 
