@@ -235,13 +235,15 @@ function startApp(dim) {
   document.getElementById('tagline-text').innerHTML = `sistemas de ecuaciones lineales en &#8477;<sup>${dim}</sup>`;
   document.getElementById('sys-title').textContent = `Sistema ${dim}×${dim}`;
   
-  if(dim === 4) {
+  // DETECCIÓN DE MÓVILES: Si es 4D o pantalla pequeña, apaga el visualizador 3D
+  const isMobile = window.innerWidth <= 860;
+  
+  if(dim === 4 || isMobile) {
     document.getElementById('viewport-section').style.display = 'none';
     document.querySelector('aside.panel').style.width = '100%';
   } else {
     document.getElementById('viewport-section').style.display = 'block';
-    // Si estamos en escritorio, restauramos el ancho del panel. En móviles, se deja en 100%.
-    document.querySelector('aside.panel').style.width = window.innerWidth <= 860 ? '100%' : '420px';
+    document.querySelector('aside.panel').style.width = '420px';
     buildAxes(); 
   }
   
@@ -778,7 +780,7 @@ document.addEventListener('click', (e) => {
 
 function openReview(method) {
   const urls = {
-    gauss: 'https://github.com/SrvCanales/Sistemas-de-ecuaciones-lineales/blob/main/pdf/_Repaso__Gauss_Jordan.pdf',
+    gauss: 'https://github.com/SrvCanales/Sistemas-de-ecuaciones-lineales/blob/main//_Repaso__Gauss_Jordan.',
     cramer: '#',
     inversa: '#'
   };
@@ -786,9 +788,22 @@ function openReview(method) {
   if(urls[method] !== '#') {
     window.open(urls[method], '_blank');
   } else {
-    alert("Enlace PDF en construcción.");
+    alert("Enlace  en construcción.");
   }
 }
+
+/* --- ESCUCHAR ÓRDENES DESDE PYTHON --- */
+window.addEventListener('message', (event) => {
+  // Si Python envía la señal de reinicio, devolvemos el botón a la normalidad
+  if (event.data && event.data.type === 'reset_pdf_button') {
+    const btnPdf = document.getElementById('btn-pdf');
+    if(btnPdf) {
+      btnPdf.textContent = "Mostrar procedimiento (PDF)";
+      btnPdf.style.background = "#3a4052";
+      btnPdf.disabled = false;
+    }
+  }
+});
 
 /* --- COMUNICACIÓN CON PYTHON (STREAMLIT) --- */
 
@@ -807,7 +822,7 @@ window.parent.postMessage({
 }, "*");
 
 // 3. Evento del botón para enviar la matriz a Python
-document.getElementById('btn-pdf').addEventListener('click', () => {
+document.getElementById('btn-').addEventListener('click', () => {
   const matrizActual = readMatrix();
   
   // Enviamos la matriz usando el comando oficial de Streamlit
@@ -818,10 +833,10 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
   }, "*");
   
   // Cambiamos el texto del botón visualmente
-  const btnPdf = document.getElementById('btn-pdf');
-  btnPdf.textContent = "Enviando datos al servidor...";
-  btnPdf.style.background = "#8c92a4";
-  btnPdf.disabled = true;
+  const btn = document.getElementById('btn-');
+  btn.textContent = "Enviando datos al servidor...";
+  btn.style.background = "#8c92a4";
+  btn.disabled = true;
 });
 
 </script>
