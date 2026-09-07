@@ -11,19 +11,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-headers = {"authorization": st.secrets["KEY"]}
+headers = {"authorization": st.secrets["GEMINI_API_KEY"]}
 
 BASE_DIR = Path(__file__).parent
 HTML_FILE = BASE_DIR / "frontend" / "index.html"
-
-with open(HTML_FILE, "r", encoding="utf-8") as f:
-    html = f.read()
-
-components.html(
-    html,
-    height=1000,
-    scrolling=False
-)
 
 try:
     visualizador = components.declare_component(HTML_FILE)
