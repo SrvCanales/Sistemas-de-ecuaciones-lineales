@@ -22,7 +22,7 @@ def generar_pdf_con_gemini(matriz, solucion, api_key):
         6. Asegúrate de cerrar correctamente todas las llaves y entornos.
         7. Tu respuesta debe ser de izquierda a derecha, de arriba a abajo, respetando los márgenes de la página
 
-        REQUISITO CLAVE = Tu desarrollo debe ser coincidir completamente con la solución {solucion}. No aproximes las fracciones como decimal.
+        REQUISITO CLAVE = Tu desarrollo debe ser coincidir completamente con la solución {solucion}. No aproximes las fracciones como decimal. Muestra explicitamente todas las operaciones por filas.
 
         REGLA ESTRICTA: Obtén la forma escalonada a partir de la forma aumentada de la matriz. Luego resuelve cada ecuación resultante. Tu respuesta debe estar escrita ÚNICAMENTE en código LaTeX válido. 
         No uses bloques de código (```latex). Escribe directamente el texto y las fórmulas usando entornos como \\begin{{pmatrix}} y \\begin{{align*}}.
