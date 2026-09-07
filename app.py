@@ -43,10 +43,15 @@ except Exception as e:
     matriz_recibida = None
 
 # --- LÓGICA DE IA Y REINTENTOS ---
-if matriz_recibida is not None:
-    # Solo generamos si la matriz ingresada es NUEVA
-    if matriz_recibida != st.session_state.ultima_matriz:
-        st.session_state.ultima_matriz = matriz_recibida
+datos_recibidos = matriz_recibida # Renombramos para mayor claridad
+
+if datos_recibidos is not None:
+    # Extraemos las dos piezas del diccionario que envió JS
+    matriz_actual = datos_recibidos["matriz"]
+    solucion_esperada = datos_recibidos["solucion"]
+    
+    if matriz_actual != st.session_state.ultima_matriz:
+        st.session_state.ultima_matriz = matriz_actual
         st.session_state.ultimo_pdf = None
         
         st.info("Generando explicación detallada con IA... Esto puede tardar unos segundos.")
@@ -54,7 +59,9 @@ if matriz_recibida is not None:
         with st.spinner('Procesando matemáticas y compilando PDF...'):
             max_intentos = 3
             for intento in range(max_intentos):
-                pdf_gen, error_msg = generar_pdf_con_gemini(matriz_recibida, GEMINI_API_KEY)
+                # Le pasamos AMBOS datos a tu función
+                pdf_gen, error_msg = generar_pdf_con_gemini(matriz_actual, solucion_esperada, GEMINI_API_KEY)
+                # ... (el resto del bucle se mantiene igual)
                 
                 if pdf_gen is not None:
                     st.session_state.ultimo_pdf = pdf_gen
