@@ -1,12 +1,15 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from frontend.ai_matrix_solver import generar_pdf_con_gemini 
+import os
 
 st.set_page_config(
     page_title="Guía - Sistemas de ecuaciones lineales",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+ruta_frontend = os.path.join(os.path.dirname(__file__), "frontend")
 
 # 1. Definimos la llave directamente en una variable
 try:
@@ -19,7 +22,7 @@ except KeyError:
 try:
     visualizador_planos = components.declare_component(
         "visualizador_planos",
-        path="frontend" 
+        path="ruta_frontend" 
     )
     
     # Usamos el nombre correcto de la variable declarada arriba
