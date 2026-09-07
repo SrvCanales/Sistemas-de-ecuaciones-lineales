@@ -794,10 +794,12 @@ function openReview(method) {
 
 /* --- ESCUCHAR ÓRDENES DESDE PYTHON --- */
 window.addEventListener('message', (event) => {
-  // Si Python envía la señal de reinicio, devolvemos el botón a la normalidad
-  if (event.data && event.data.type === 'reset_pdf_button') {
+  // Streamlit envía 'streamlit:render' cada vez que Python termina de procesar
+  if (event.data && event.data.type === 'streamlit:render') {
     const btnPdf = document.getElementById('btn-pdf');
-    if(btnPdf) {
+    
+    // Si el botón estaba bloqueado, lo devolvemos a la normalidad automáticamente
+    if(btnPdf && btnPdf.disabled) {
       btnPdf.textContent = "Mostrar procedimiento (PDF)";
       btnPdf.style.background = "#3a4052";
       btnPdf.disabled = false;
