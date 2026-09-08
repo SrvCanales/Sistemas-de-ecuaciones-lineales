@@ -12,14 +12,14 @@ st.set_page_config(
 
 ruta_frontend = os.path.join(os.path.dirname(__file__), "frontend")
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") # Intenta leer de Render
 
-# 1. Definimos la llave directamente en una variable
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-except KeyError:
-    st.error("Falta la llave GEMINI_API_KEY en los secretos.")
-    st.stop()
+if not GEMINI_API_KEY:
+    try:
+        GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"] # Intenta leer de Streamlit local
+    except Exception:
+        st.error("Falta la llave GEMINI_API_KEY en la configuración.")
+        st.stop()
 
 
 # --- SISTEMA DE MEMORIA (CACHÉ) ---
