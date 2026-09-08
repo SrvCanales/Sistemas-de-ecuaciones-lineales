@@ -78,9 +78,22 @@ def generar_pdf_con_gemini(matriz, solucion, api_key):
 \end{document}
 """
 
-        # 5. Guardar el archivo .tex temporal
-        with open("temp_resolucion.tex", "w", encoding="utf-8") as f:
-            f.write(documento_completo)
+        # 5. Enviar el código a la API externa de compilación LaTeX
+        import urllib.parse
+        import requests
+        
+        codigo_url = urllib.parse.quote(documento_completo)
+        url_compilador = f"https://latexonline.cc/compile?text={codigo_url}"
+        
+        respuesta_pdf = requests.get(url_compilador)
+        
+        if respuesta_pdf.status_code == 200:
+            return respuesta_pdf.content, None # Devuelve los bytes del PDF
+        else:
+            return None, "Error en el servidor externo al compilar el documento LaTeX."
+
+    except Exception as e:
+        return None, str(e)
 
         # 6. Compilar el PDF llamando al sistema operativo (pdflatex)
         subprocess.run(
