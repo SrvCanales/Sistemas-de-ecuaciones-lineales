@@ -12,6 +12,8 @@ st.set_page_config(
 
 ruta_frontend = os.path.join(os.path.dirname(__file__), "frontend")
 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
 # 1. Definimos la llave directamente en una variable
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
