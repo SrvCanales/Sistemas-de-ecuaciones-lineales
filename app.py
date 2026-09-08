@@ -4,6 +4,9 @@ from frontend.ai_matrix_solver import generar_pdf_con_gemini
 import os
 import time
 
+st.cache_data.clear()
+st.cache_resource.clear()
+
 st.set_page_config(
     page_title="Guía - Sistemas de ecuaciones lineales",
     layout="wide",
