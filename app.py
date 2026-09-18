@@ -50,19 +50,19 @@ datos_recibidos = matriz_recibida # Renombramos para mayor claridad
 if datos_recibidos is not None:
     # Extraemos las dos piezas del diccionario que envió JS
     matriz_actual = datos_recibidos["matriz"]
-    solucion_esperada = datos_recibidos["solucion"]
+    metodo_elegido = datos_recibidos.get("metodo", "gauss")
     
     if matriz_actual != st.session_state.ultima_matriz:
         st.session_state.ultima_matriz = matriz_actual
         st.session_state.ultimo_pdf = None
         
-        st.info("Generando explicación detallada con IA... Esto puede tardar unos segundos.")
+        st.info("Generando explicación detallada... Esto puede tardar unos segundos.")
         
         with st.spinner('Procesando matemáticas y compilando PDF...'):
             max_intentos = 3
             for intento in range(max_intentos):
                 # Le pasamos AMBOS datos a tu función
-                pdf_gen, error_msg = generar_pdf_con_gemini(matriz_actual, solucion_esperada, GEMINI_API_KEY)
+                pdf_gen, error_msg = generar_pdf_con_gemini(matriz_actual, metodo_elegido, GEMINI_API_KEY)
                 # ... (el resto del bucle se mantiene igual)
                 
                 if pdf_gen is not None:
