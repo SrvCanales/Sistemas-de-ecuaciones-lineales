@@ -842,33 +842,91 @@ window.parent.postMessage({
 }, "*");
 
 // 3. Evento del botón para enviar la matriz a Python
+// 1. Abrir Modal al clickear tu botón original
 document.getElementById('btn-pdf').addEventListener('click', () => {
-  const matrizActual = readMatrix();
+  document.getElementById('modal-metodos').style.display = 'flex';
+});
+
+// 2. Navegación del Modal
+function mostrarSubmenu() {
+  document.getElementById('panel-principal').style.display = 'none';
+  document.getElementById('panel-inversa').style.display = 'block';
+}
+
+function volverPrincipal() {
+  document.getElementById('panel-inversa').style.display = 'none';
+  document.getElementById('panel-principal').style.display = 'block';
+}
+
+function cerrarModal() {
+  document.getElementById('modal-metodos').style.display = 'none';
+  volverPrincipal(); // Resetear estado
+}
+
+// 3. Enviar a Python
+function enviarMetodo(metodoElegido) {
+  const matrizActual = readMatrix(); 
   
-  // Extraemos la solución que JS ya calculó para enviarla como "ancla"
-  let solucionEsperada = "";
-  if (systemState.result.type === 'unique') {
-     // Crea un texto tipo: "x = 2, y = -1, z = 4"
-     solucionEsperada = "Solución única: " + systemState.result.particular.map((val, idx) => `${VAR_SYMS[idx]} = ${val}`).join(", ");
-  } else if (systemState.result.type === 'infinite') {
-     solucionEsperada = "Sistema Compatible Indeterminado (infinitas soluciones).";
-  } else {
-     solucionEsperada = "Sistema Incompatible (no tiene solución).";
-  }
-  
-  // Enviamos AMBOS datos a Python dentro del valor
   window.parent.postMessage({
     isStreamlitMessage: true,
     type: "streamlit:setComponentValue",
-    value: { matriz: matrizActual, solucion: solucionEsperada } // <--- EL CAMBIO CLAVE
+    value: { matriz: matrizActual, metodo: metodoElegido }
   }, "*");
   
+  cerrarModal();
+  
+  // Opcional: Cambiar texto de tu botón original a "Generando..."
   const btnPdf = document.getElementById('btn-pdf');
-  btnPdf.textContent = "Enviando datos al servidor...";
-  btnPdf.style.background = "#8c92a4";
+  btnPdf.textContent = "Generando PDF...";
   btnPdf.disabled = true;
-});
+}
 
 </script>
+
+<!-- Estilos del Modal -->
+<style>
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .modal-content {
+    background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px;
+    font-family: sans-serif; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .btn-opcion {
+    display: block; width: 100%; padding: 12px; margin: 10px 0; border: none;
+    background: #f0f2f6; border-radius: 8px; cursor: pointer; font-size: 16px;
+    transition: background 0.2s;
+  }
+  .btn-opcion:hover { background: #e0e4eb; }
+  .btn-volver { background: none; color: #ff4b4b; margin-top: 10px; font-size: 14px; text-decoration: underline; }
+  #panel-inversa { display: none; } /* Oculto por defecto */
+</style>
+
+<!-- Estructura del Modal -->
+<div id="modal-metodos" class="modal-overlay">
+  <div class="modal-content">
+    
+    <!-- Panel Principal -->
+    <div id="panel-principal">
+      <h3>Selecciona el Método</h3>
+      <button class="btn-opcion" onclick="enviarMetodo('gauss')">Gauss-Jordan</button>
+      <button class="btn-opcion" onclick="mostrarSubmenu()">Matriz Inversa</button>
+      <button class="btn-opcion" onclick="enviarMetodo('cramer')">Regla de Cramer</button>
+      <button class="btn-volver" onclick="cerrarModal()">Cancelar</button>
+    </div>
+
+    <!-- Sub-Panel de Matriz Inversa -->
+    <div id="panel-inversa">
+      <h3>Método de Inversión</h3>
+      <button class="btn-opcion" onclick="enviarMetodo('inversa_gauss')">Por Operaciones Elementales</button>
+      <button class="btn-opcion" onclick="enviarMetodo('inversa_adjunta')">Por Matriz Adjunta</button>
+      <button class="btn-volver" onclick="volverPrincipal()">⬅ Volver</button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
