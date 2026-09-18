@@ -4,6 +4,79 @@ import subprocess
 import os
 from fractions import Fraction
 
+def calcular_historial_cramer(matriz_entrada):
+    # Separar matriz de coeficientes (A) y términos independientes (B)
+    A = sp.Matrix([fila[:-1] for fila in matriz_entrada])
+    B = sp.Matrix([fila[-1] for fila in matriz_entrada])
+    
+    det_A = A.det()
+    historial = [f"Calculamos el determinante de la matriz de coeficientes $A$:\n\\det(A) = {det_A}"]
+    
+    if det_A == 0:
+        return "El determinante es 0. El sistema no se puede resolver por la Regla de Cramer."
+    
+    variables = ['x', 'y', 'z', 'w'] # Adaptar según tamaño
+    
+    for i in range(A.shape[1]):
+        # Crear matriz modificada reemplazando la columna i con B
+        A_mod = A.copy()
+        A_mod.col_op(i, lambda v, j: B[j])
+        det_mod = A_mod.det()
+        valor_var = det_mod / det_A
+        
+        paso = (f"Para la variable ${variables[i]}$, reemplazamos la columna {i+1} de $A$ con el vector $B$:\n"
+                f"\\det(A_{variables[i]}) = {det_mod}\n"
+                f"${variables[i]} = \\frac{{{det_mod}}}{{{det_A}}} = {valor_var}$")
+        historial.append(paso)
+        
+    return "\n\n".join(historial)
+
+def calcular_historial_inversa_adjunta(matriz_entrada):
+    A = sp.Matrix([fila[:-1] for fila in matriz_entrada])
+    B = sp.Matrix([fila[-1] for fila in matriz_entrada])
+    det_A = A.det()
+    
+    if det_A == 0: return "Determinante 0. No es invertible."
+    
+    # SymPy calcula la adjunta directamente con .adjugate()
+    adj_A = A.adjugate()
+    A_inv = adj_A / det_A
+    X = A_inv * B
+    
+    historial = [
+        f"Calculamos el determinante:\n\\det(A) = {det_A}",
+        f"Calculamos la matriz de cofactores transpuesta (Adjunta):\n\\text{{Adj}}(A) = {sp.latex(adj_A)}",
+        f"Aplicamos $A^{{-1}} = \\frac{{1}}{{\\det(A)}} \\text{{Adj}}(A)$:\n$A^{{-1}} = {sp.latex(A_inv)}$",
+        f"Multiplicamos $X = A^{{-1}} B$:\n$X = {sp.latex(X)}$"
+    ]
+    return "\n\n".join(historial)
+
+def calcular_historial_inversa_gauss(matriz_entrada):
+    A = sp.Matrix([fila[:-1] for fila in matriz_entrada])
+    B = sp.Matrix([fila[-1] for fila in matriz_entrada])
+    n = A.shape[0]
+    
+    if A.det() == 0: return "Determinante 0. No es invertible."
+    
+    # Creamos la matriz aumentada [A | I]
+    I = sp.eye(n)
+    A_aumentada = A.row_join(I)
+    
+    # SymPy hace Gauss-Jordan y devuelve la matriz reducida
+    A_reducida, _ = A_aumentada.rref()
+    
+    # Extraemos la mitad derecha, que ahora es A^-1
+    A_inv = A_reducida[:, n:]
+    X = A_inv * B
+    
+    historial = [
+        f"Construimos la matriz aumentada con la Identidad $[A | I]$:\n{sp.latex(A_aumentada)}",
+        f"Aplicamos operaciones elementales de fila (Gauss-Jordan) hasta obtener $[I | A^{{-1}}]$:\n{sp.latex(A_reducida)}",
+        f"Extraemos la matriz inversa $A^{{-1}}$:\n$A^{{-1}} = {sp.latex(A_inv)}$",
+        f"Multiplicamos $X = A^{{-1}} B$:\n$X = {sp.latex(X)}$"
+    ]
+    return "\n\n".join(historial)
+
 def calcular_historial_gauss(matriz_entrada):
     M = [[Fraction(val) for val in fila] for fila in matriz_entrada]
     filas, cols = len(M), len(M[0])
@@ -33,24 +106,31 @@ def calcular_historial_gauss(matriz_entrada):
         lead += 1
     return "\n\n".join(historial)
 
-def generar_pdf_con_gemini(matriz, solucion, api_key):
+def generar_pdf_con_gemini(matriz, metodo, solucion, api_key):
     try:
-        # 1. Proveedor: Inicializamos el cliente pasando la VARIABLE api_key (sin comillas)
+        # 1. Proveedor: Inicializamos el cliente pasando la VARIABLE api_key
 
         client = genai.Client(api_key=api_key)
 
-        historial_exacto = calcular_historial_gauss(matriz)
+        if metodo == "gauss":
+            historial = calcular_historial_gauss(matriz)
+        elif metodo == "cramer":
+            historial = calcular_historial_cramer(matriz)
+        elif metodo == "inversa_gauss":
+            historial = calcular_historial_inversa_gauss(matriz)
+        elif metodo == "inversa_adjunta":
+            historial = calcular_historial_inversa_adjunta(matriz)
 
         # 2. Prompt LATEX
         prompt = f"""
-    Eres un tipógrafo matemático experto en LaTeX.
+    Eres un tipógrafo matemático experto en LaTeX. Debes maquetar la resolución paso a paso de un sistema de ecuaciones utilizando el método de: {metodo.upper()}
     A continuación, te entrego el historial EXACTO paso a paso de la resolución de un sistema de ecuaciones:
     
-    {historial_exacto}
+    {historial}
     
     REGLAS ESTRICTAS:
     1. Tu tarea es convertir este texto crudo en código LaTeX válido y elegante.
-    2. NO alteres ningún número ni fracción. Usa exactamente las matrices provistas.
+    2. NO alteres ningún número ni fracción. Usa exactamente las matrices y determinantes exactamente como se muestran. 
     3. Escribe una frase explicativa pequeña entre cada matriz usando las operaciones indicadas (ej. Aplicamos $F_2 \\rightarrow F_2 - 2F_1$).
     4. Responde ÚNICAMENTE con el contenido LaTeX (sin \\documentclass ni preámbulos)
     5. Encasilla el resultado para cada incógnita, e interpreta la solución (sistema compatible determinado/indeterminado o incompatible y por qué es así) """
