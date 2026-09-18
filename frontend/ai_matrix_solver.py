@@ -106,7 +106,7 @@ def calcular_historial_gauss(matriz_entrada):
         lead += 1
     return "\n\n".join(historial)
 
-def generar_pdf_con_gemini(matriz, metodo, solucion, api_key):
+def generar_pdf_con_gemini(matriz, metodo, api_key):
     try:
         # 1. Proveedor: Inicializamos el cliente pasando la VARIABLE api_key
 
