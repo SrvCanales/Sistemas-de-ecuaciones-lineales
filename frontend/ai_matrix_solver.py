@@ -5,6 +5,71 @@ import requests
 from fractions import Fraction
 import sympy as sp
 
+PLANTILLAS_TEORICAS = {
+    "gauss": r"""
+\section*{Fundamentos: Método de Gauss-Jordan}
+El objetivo de este método es transformar la matriz ampliada del sistema en su forma escalonada reducida. Esto permite leer la solución directamente de la matriz resultante.
+
+\begin{tcolorbox}[colback=blue!5,colframe=blue!60!black,title=Operaciones Elementales de Fila válidas]
+1. \textbf{Intercambio:} $F_i \leftrightarrow F_j$ (Intercambiar la posición de dos filas).\\
+2. \textbf{Escalado:} $F_i \rightarrow kF_i$ con $k \neq 0$ (Multiplicar una fila por una constante no nula).\\
+3. \textbf{Sustitución:} $F_i \rightarrow F_i + kF_j$ (Sumar a una fila un múltiplo de otra).
+\end{tcolorbox}
+
+\vspace{0.5cm}
+\textbf{Validez y Aplicación:} Este es el método más universal. A diferencia de otros enfoques, Gauss-Jordan no exige que la matriz sea cuadrada (puede haber más variables que ecuaciones o viceversa) ni que el determinante sea distinto de cero. Es el único método capaz de identificar claramente si un sistema tiene infinitas soluciones o si es incompatible.
+\newpage
+\section*{Resolución Paso a Paso}
+""",
+
+    "cramer": r"""
+\section*{Fundamentos: Regla de Cramer}
+Este método clásico utiliza determinantes para resolver sistemas de ecuaciones lineales de forma explícita y directa, aislando el cálculo de cada variable.
+
+\begin{tcolorbox}[colback=green!5,colframe=green!50!black,title=Teorema de Cramer]
+Si un sistema de $n \times n$ tiene una matriz de coeficientes $A$ con $\det(A) \neq 0$, la solución única está dada por:
+\[ x_i = \frac{\det(A_i)}{\det(A)} \]
+donde $A_i$ es la matriz que resulta de reemplazar la $i$-ésima columna de $A$ por el vector de términos independientes $B$.
+\end{tcolorbox}
+
+\vspace{0.5cm}
+\textbf{Validez y Aplicación:} La Regla de Cramer tiene dos requisitos estrictos: el sistema debe ser cuadrado (mismo número de ecuaciones que de incógnitas) y el determinante de la matriz principal debe ser estrictamente distinto de cero ($\det(A) \neq 0$). Si $\det(A) = 0$, el método colapsa por división por cero, indicando que se debe usar Gauss para determinar si hay infinitas soluciones o ninguna.
+\newpage
+\section*{Resolución Paso a Paso}
+""",
+
+    "inversa_gauss": r"""
+\section*{Fundamentos: Inversión por Operaciones Elementales}
+Todo sistema cuadrado puede representarse como $AX = B$. Si la matriz $A$ es invertible, la solución directa es $X = A^{-1}B$. Este método halla $A^{-1}$ usando el algoritmo de Gauss.
+
+\begin{tcolorbox}[colback=purple!5,colframe=purple!50!black,title=Algoritmo de Inversión por Matriz Aumentada]
+Construimos una matriz super-aumentada colocando la matriz identidad $I$ a la derecha de $A$. Aplicamos operaciones elementales de fila hasta transformar el lado izquierdo en la identidad:
+\[ [A | I] \quad \xrightarrow{\text{Operaciones Elementales}} \quad [I | A^{-1}] \]
+\end{tcolorbox}
+
+\vspace{0.5cm}
+\textbf{Validez y Aplicación:} Exige que el sistema sea cuadrado y que $\det(A) \neq 0$. Es computacionalmente más eficiente que la matriz adjunta para dimensiones grandes. Si durante el escalonamiento una fila del lado izquierdo se vuelve completamente cero, se concluye matemáticamente que la matriz es singular (no invertible).
+\newpage
+\section*{Resolución Paso a Paso}
+""",
+
+    "inversa_adjunta": r"""
+\section*{Fundamentos: Inversión por Matriz Adjunta}
+Este enfoque algebraico permite encontrar la inversa de una matriz $A$ utilizando sus determinantes menores, sin necesidad de realizar operaciones elementales entre filas.
+
+\begin{tcolorbox}[colback=orange!5,colframe=orange!60!black,title=Fórmulas Clave]
+\textbf{1. Cofactor:} $C_{ij} = (-1)^{i+j} \det(M_{ij})$ \\
+\textbf{2. Matriz Adjunta:} $\text{Adj}(A) = C^T$ (Transpuesta de la matriz de cofactores) \\
+\textbf{3. Inversa:} $A^{-1} = \frac{1}{\det(A)} \text{Adj}(A)$
+\end{tcolorbox}
+
+\vspace{0.5cm}
+\textbf{Validez y Aplicación:} Al igual que la regla de Cramer, requiere un sistema cuadrado con $\det(A) \neq 0$. Aunque computacionalmente es pesado para matrices grandes (por la cantidad de determinantes a calcular), ofrece una fórmula analítica directa e infalible, ideal para demostraciones y sistemas de orden $2 \times 2$ o $3 \times 3$.
+\newpage
+\section*{Resolución Paso a Paso}
+"""
+}
+
 # Funciones auxiliares
 
 def latex_matriz_aumentada(M, cols_izq=None):
