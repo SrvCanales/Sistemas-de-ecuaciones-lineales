@@ -348,7 +348,6 @@ def generar_pdf_con_gemini(matriz, metodo, api_key):
 \end{document}
 """
 
-
         url_compilador = "https://latexonline.cc/compile"
         
         # En lugar de usar la URL, enviamos el texto emulando la subida de un archivo .tex
@@ -373,3 +372,6 @@ def generar_pdf_con_gemini(matriz, metodo, api_key):
                 mensaje_util = log_error[:300]
                 
             return None, f"Error LaTeX (Código {respuesta_pdf.status_code}): {mensaje_util}"
+            
+    except Exception as e:
+        return None, str(e)
