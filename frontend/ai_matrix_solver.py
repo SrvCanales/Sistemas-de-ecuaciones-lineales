@@ -5,221 +5,286 @@ import requests
 from fractions import Fraction
 import sympy as sp
 
-def calcular_historial_cramer(matriz_entrada):
-    A = sp.Matrix([fila[:-1] for fila in matriz_entrada])
-    B = sp.Matrix([fila[-1] for fila in matriz_entrada])
+# Funciones auxiliares
+
+def latex_matriz_aumentada(M, cols_izq=None):
+    """Convierte una matriz SymPy en LaTeX con una línea vertical divisoria."""
+    filas, cols = M.shape
+    if cols_izq is None: 
+        cols_izq = cols - 1 # Por defecto, la última columna es el lado derecho
+        
+    formato = "c" * cols_izq + "|" + "c" * (cols - cols_izq) if cols_izq < cols else "c" * cols
+    res = r"\left[\begin{array}{" + formato + "}\n"
+    for i in range(filas):
+        res += " & ".join([sp.latex(M[i, j]) for j in range(cols)]) + r" \\" + "\n"
+    res += r"\end{array}\right]"
+    return res
+
+def latex_determinante(M):
+    """Dibuja una matriz con barras verticales de determinante |A|."""
+    filas, cols = M.shape
+    res = r"\begin{vmatrix}" + "\n"
+    for i in range(filas):
+        res += " & ".join([sp.latex(M[i, j]) for j in range(cols)]) + r" \\" + "\n"
+    res += r"\end{vmatrix}"
+    return res
+
+# Funciones principales para generar LATEX
+
+def calcular_latex_gauss(matriz_entrada):
+    M = sp.Matrix(matriz_entrada).applyfunc(sp.Rational)
+    filas, cols = M.shape
+    
+    pasos = ["Iniciamos con la matriz aumentada del sistema:\n", f"\\[ {latex_matriz_aumentada(M)} \\]\n"]
+    
+    lead = 0
+    for r in range(filas):
+        if lead >= cols - 1: break
+        
+        # 1. Buscar pivote y hacer intercambio si es necesario
+        i = r
+        while M[i, lead] == 0:
+            i += 1
+            if i == filas:
+                i, lead = r, lead + 1
+                if lead == cols - 1: break
+        if lead >= cols - 1: break
+        
+        if i != r:
+            M.row_swap(i, r)
+            pasos.append(rf"Intercambiamos la fila {r+1} con la fila {i+1} ($F_{r+1} \leftrightarrow F_{i+1}$):")
+            pasos.append(rf"\[ {latex_matriz_aumentada(M)} \]")
+            
+        # 2. Hacer el pivote igual a 1
+        pivote = M[r, lead]
+        if pivote != 1 and pivote != 0:
+            M[r, :] = M[r, :] / pivote
+            pasos.append(rf"Escalamos la fila {r+1} multiplicando por el inverso del pivote ($F_{r+1} \rightarrow \frac{{1}}{{{sp.latex(pivote)}}} F_{r+1}$):")
+            pasos.append(rf"\[ {latex_matriz_aumentada(M)} \]")
+            
+        # 3. Eliminar los elementos de la columna en las demás filas
+        for k in range(filas):
+            if k != r:
+                factor = M[k, lead]
+                if factor != 0:
+                    M[k, :] = M[k, :] - factor * M[r, :]
+                    signo = "-" if factor > 0 else "+"
+                    factor_abs = sp.Abs(factor)
+                    termino = f"F_{r+1}" if factor_abs == 1 else f"{sp.latex(factor_abs)}F_{r+1}"
+                    pasos.append(rf"Eliminamos el elemento en $F_{k+1}$ ($F_{k+1} \rightarrow F_{k+1} {signo} {termino}$):")
+                    pasos.append(rf"\[ {latex_matriz_aumentada(M)} \]")
+        lead += 1
+        
+    pasos_latex = "\n\n".join(pasos)
+    solucion_texto = f"La matriz escalonada reducida final obtenida es: {str(M.tolist())}"
+    return pasos_latex, solucion_texto
+
+
+def calcular_latex_cramer(matriz_entrada):
+    A = sp.Matrix([fila[:-1] for fila in matriz_entrada]).applyfunc(sp.Rational)
+    B = sp.Matrix([fila[-1] for fila in matriz_entrada]).applyfunc(sp.Rational)
     n = A.shape[0]
+    
     det_A = A.det()
+    pasos = [
+        r"\textbf{Paso 1: Determinante del Sistema (\(\det(A)\))}",
+        "Calculamos el determinante de la matriz de coeficientes. Evaluamos la expansión por cofactores de la primera fila:",
+        rf"\[ \det(A) = {latex_determinante(A)} \]"
+    ]
+    
+    # Mostrar la expansión paso a paso para determinantes 3x3 o mayores
+    if n >= 3:
+        expansion = r"\[ \det(A) = "
+        for j in range(n):
+            M_sub = A.copy()
+            M_sub.row_del(0)
+            M_sub.col_del(j)
+            signo = "+" if j % 2 == 0 else "-"
+            val = A[0, j]
+            if val != 0:
+                expansion += rf" {signo} \left({sp.latex(val)}\right) {latex_determinante(M_sub)} "
+        expansion += rf" = {sp.latex(det_A)} \]"
+        pasos.append(expansion)
     
     if det_A == 0:
-        return "El determinante es 0. El sistema no se puede resolver por la Regla de Cramer."
-    
-    historial = [f"Calculamos el determinante de la matriz de coeficientes $A$:\n$A = {sp.latex(A)}$"]
-    
-    # Detallar el cálculo del determinante expandiendo por la primera fila (para 3x3 o mayor)
-    if n >= 3:
-        expansion = "\\det(A) = "
-        for j in range(n):
-            M_0j = A.copy()
-            M_0j.row_del(0)
-            M_0j.col_del(j)
-            signo = "+" if j % 2 == 0 else "-"
-            expansion += f"{signo} ({A[0,j]}) \\det({sp.latex(M_0j)}) "
-        historial.append(expansion + f" = {det_A}")
-    else:
-        historial.append(f"\\det(A) = {det_A}")
-    
+        pasos.append(r"\vspace{0.5cm}\textbf{\color{red} ¡Atención!} El determinante es 0. La Regla de Cramer colapsa. El sistema no tiene solución única.")
+        return "\n\n".join(pasos), "El determinante es cero. El sistema es Incompatible o Compatible Indeterminado."
+        
+    pasos.append(r"\vspace{0.5cm}\textbf{Paso 2: Determinantes de las Variables}")
     variables = ['x', 'y', 'z', 'w'][:n]
+    resultados_finales = []
     
     for i in range(n):
         A_mod = A.copy()
         A_mod.col_op(i, lambda v, j: B[j])
         det_mod = A_mod.det()
         valor_var = det_mod / det_A
+        resultados_finales.append(f"{variables[i]} = {valor_var}")
         
-        paso = f"Para la variable ${variables[i]}$, reemplazamos la columna {i+1} de $A$ con el vector $B$:\n$A_{variables[i]} = {sp.latex(A_mod)}$\n"
-        
-        # Expandir también el cálculo del determinante modificado
-        if n >= 3:
-            paso += f"\\det(A_{variables[i]}) = "
-            for j in range(n):
-                M_0j = A_mod.copy()
-                M_0j.row_del(0)
-                M_0j.col_del(j)
-                signo = "+" if j % 2 == 0 else "-"
-                paso += f"{signo} ({A_mod[0,j]}) \\det({sp.latex(M_0j)}) "
-            paso += f" = {det_mod}\n"
-        else:
-            paso += f"\\det(A_{variables[i]}) = {det_mod}\n"
+        pasos.append(rf"\noindent Sustituimos la columna {i+1} por el vector de términos independientes para hallar $\det(A_{variables[i]})$:")
+        pasos.append(rf"\[ \det(A_{variables[i]}) = {latex_determinante(A_mod)} = {sp.latex(det_mod)} \]")
+        pasos.append(rf"\[ {variables[i]} = \frac{{\det(A_{variables[i]})}}{{\det(A)}} = \frac{{{sp.latex(det_mod)}}}{{{sp.latex(det_A)}}} = {sp.latex(valor_var)} \]")
+        pasos.append(r"\vspace{0.3cm}\hrule\vspace{0.3cm}")
 
-        paso += f"${variables[i]} = \\frac{{\\det(A_{variables[i]})}}{{\\det(A)}} = \\frac{{{det_mod}}}{{{det_A}}} = {valor_var}$"
-        historial.append(paso)
-        
-    return "\n\n".join(historial)
+    solucion_texto = f"El sistema tiene solución única: {', '.join(resultados_finales)}"
+    return "\n\n".join(pasos), solucion_texto
 
-def calcular_historial_inversa_adjunta(matriz_entrada):
-    A = sp.Matrix([fila[:-1] for fila in matriz_entrada])
-    B = sp.Matrix([fila[-1] for fila in matriz_entrada])
+
+def calcular_latex_inversa_gauss(matriz_entrada):
+    A = sp.Matrix([fila[:-1] for fila in matriz_entrada]).applyfunc(sp.Rational)
+    B = sp.Matrix([fila[-1] for fila in matriz_entrada]).applyfunc(sp.Rational)
     n = A.shape[0]
-    det_A = A.det()
     
-    if det_A == 0: return "Determinante 0. No es invertible."
+    if A.det() == 0:
+        return r"\textbf{Error:} El determinante de la matriz principal es 0. La matriz no es invertible.", "Determinante cero, matriz singular."
+        
+    # Construir [A | I]
+    I = sp.eye(n)
+    M = A.row_join(I)
     
-    historial = [
-        f"1. Calculamos el determinante de la matriz $A$:\n\\det(A) = {det_A}",
-        "2. Calculamos la matriz de cofactores $C$. Para cada elemento, el cofactor es $C_{ij} = (-1)^{i+j} \\det(M_{ij})$:"
+    pasos = [
+        r"\textbf{Paso 1: Construcción de la matriz aumentada $[A | I]$}",
+        rf"\[ {latex_matriz_aumentada(M, cols_izq=n)} \]",
+        r"\vspace{0.5cm}\textbf{Paso 2: Reducción por Operaciones Elementales}"
     ]
+    
+    # Algoritmo de Gauss-Jordan sobre [A | I]
+    for r in range(n):
+        if M[r, r] == 0:
+            for i in range(r + 1, n):
+                if M[i, r] != 0:
+                    M.row_swap(i, r)
+                    pasos.append(rf"Intercambio: $F_{r+1} \leftrightarrow F_{i+1}$")
+                    pasos.append(rf"\[ {latex_matriz_aumentada(M, cols_izq=n)} \]")
+                    break
+                    
+        pivote = M[r, r]
+        if pivote != 1:
+            M[r, :] = M[r, :] / pivote
+            pasos.append(rf"Pivote a 1: $F_{r+1} \rightarrow \frac{{1}}{{{sp.latex(pivote)}}} F_{r+1}$")
+            pasos.append(rf"\[ {latex_matriz_aumentada(M, cols_izq=n)} \]")
+            
+        for k in range(n):
+            if k != r and M[k, r] != 0:
+                factor = M[k, r]
+                M[k, :] = M[k, :] - factor * M[r, :]
+                signo = "-" if factor > 0 else "+"
+                factor_abs = sp.Abs(factor)
+                termino = f"F_{r+1}" if factor_abs == 1 else f"{sp.latex(factor_abs)}F_{r+1}"
+                pasos.append(rf"Eliminación: $F_{k+1} \rightarrow F_{k+1} {signo} {termino}$")
+                pasos.append(rf"\[ {latex_matriz_aumentada(M, cols_izq=n)} \]")
+
+    A_inv = M[:, n:]
+    X = A_inv * B
+    
+    pasos.append(r"\vspace{0.5cm}\textbf{Paso 3: Extracción de la Inversa y Solución}")
+    pasos.append(rf"La matriz ha sido transformada a $[I | A^{{-1}}]$. Extraemos la inversa:")
+    pasos.append(rf"\[ A^{{-1}} = {latex_matriz_aumentada(A_inv, cols_izq=n)} \]")
+    pasos.append(r"Finalmente, multiplicamos por el vector de términos independientes ($X = A^{-1}B$):")
+    pasos.append(rf"\[ X = {latex_matriz_aumentada(A_inv, cols_izq=n)} {latex_matriz_aumentada(B, cols_izq=1)} = {latex_matriz_aumentada(X, cols_izq=1)} \]")
+
+    return "\n\n".join(pasos), f"Solución calculada mediante A_inv * B = {str(X.tolist())}"
+
+
+def calcular_latex_inversa_adjunta(matriz_entrada):
+    A = sp.Matrix([fila[:-1] for fila in matriz_entrada]).applyfunc(sp.Rational)
+    B = sp.Matrix([fila[-1] for fila in matriz_entrada]).applyfunc(sp.Rational)
+    n = A.shape[0]
+    
+    det_A = A.det()
+    pasos = [
+        r"\textbf{Paso 1: Determinante del Sistema}",
+        rf"\[ \det(A) = {sp.latex(det_A)} \]"
+    ]
+    if det_A == 0:
+        pasos.append(r"El determinante es 0. La matriz no tiene inversa.")
+        return "\n\n".join(pasos), "Determinante cero."
+
+    pasos.append(r"\vspace{0.5cm}\textbf{Paso 2: Matriz de Cofactores ($C$)}")
+    pasos.append(r"Calculamos explícitamente cada cofactor usando la fórmula $C_{ij} = (-1)^{i+j} \det(M_{ij})$:")
     
     C = sp.zeros(n, n)
     for i in range(n):
         for j in range(n):
-            M_ij = A.copy()
-            M_ij.row_del(i)
-            M_ij.col_del(j)
-            det_Mij = M_ij.det()
-            cofactor = ((-1)**(i+j)) * det_Mij
-            C[i,j] = cofactor
-            # Mostrar explícitamente de dónde sale cada número
-            historial.append(f"C_{{{i+1}{j+1}}} = (-1)^{{{i+1}+{j+1}}} \\det({sp.latex(M_ij)}) = ({-1 if (i+j)%2!=0 else 1})({det_Mij}) = {cofactor}")
-    
+            M_sub = A.copy()
+            M_sub.row_del(i)
+            M_sub.col_del(j)
+            det_sub = M_sub.det()
+            cofactor = ((-1)**(i+j)) * det_sub
+            C[i, j] = cofactor
+            
+            signo_base = "-" if (i+j)%2 != 0 else "+"
+            # Muestra la submatriz y el cálculo del signo
+            pasos.append(rf"\[ C_{{{i+1}{j+1}}} = {signo_base} {latex_determinante(M_sub)} = {signo_base}({sp.latex(det_sub)}) = {sp.latex(cofactor)} \]")
+
     adj_A = C.T
     A_inv = adj_A / det_A
     X = A_inv * B
-    
-    historial.append(f"Matriz de cofactores $C$:\n$C = {sp.latex(C)}$")
-    historial.append(f"3. Transponemos $C$ para obtener la Matriz Adjunta:\n\\text{{Adj}}(A) = C^T = {sp.latex(adj_A)}")
-    historial.append(f"4. Aplicamos $A^{{-1}} = \\frac{{1}}{{\\det(A)}} \\text{{Adj}}(A)$:\n$A^{{-1}} = {sp.latex(A_inv)}$")
-    historial.append(f"5. Multiplicamos $X = A^{{-1}} B$ para obtener la solución final:\n$X = {sp.latex(X)}$")
-    
-    return "\n\n".join(historial)
 
-def calcular_historial_inversa_gauss(matriz_entrada):
-    n = len(matriz_entrada)
-    # 1. Construir matriz aumentada [A | I] con fracciones exactas
-    M = []
-    for i, fila in enumerate(matriz_entrada):
-        fila_frac = [Fraction(val) for val in fila[:-1]]
-        identidad = [Fraction(1) if i == j else Fraction(0) for j in range(n)]
-        M.append(fila_frac + identidad)
-        
-    filas, cols = n, 2*n
-    historial = ["Matriz aumentada inicial $[A | I]$:\n" + str([[str(c) for c in f] for f in M])]
+    pasos.append(r"\vspace{0.5cm}\textbf{Paso 3: Matriz Adjunta ($\text{Adj}(A)$)}")
+    pasos.append(r"Agrupamos los cofactores y transponemos la matriz ($C^T$):")
+    pasos.append(rf"\[ C = {latex_matriz_aumentada(C, cols_izq=n)} \quad \Rightarrow \quad \text{{Adj}}(A) = {latex_matriz_aumentada(adj_A, cols_izq=n)} \]")
     
-    # 2. Replicar el algoritmo paso a paso
-    lead = 0
-    for r in range(filas):
-        if lead >= n: break
-        if M[r][lead] == 0:
-            for i in range(r + 1, filas):
-                if M[i][lead] != 0:
-                    M[r], M[i] = M[i], M[r]
-                    historial.append(f"Intercambio $F_{r+1} \\leftrightarrow F_{i+1}$:\n" + str([[str(c) for c in f] for f in M]))
-                    break
-        
-        pivote = M[r][lead]
-        if pivote != 0:
-            if pivote != 1:
-                M[r] = [x / pivote for x in M[r]]
-                historial.append(f"$F_{r+1} \\rightarrow \\frac{{1}}{{{pivote}}} F_{r+1}$:\n" + str([[str(c) for c in f] for f in M]))
-            
-            for k in range(filas):
-                if k != r and M[k][lead] != 0:
-                    factor = M[k][lead]
-                    M[k] = [M[k][j] - factor * M[r][j] for j in range(cols)]
-                    historial.append(f"$F_{k+1} \\rightarrow F_{k+1} - ({factor})F_{r+1}$:\n" + str([[str(c) for c in f] for f in M]))
-        lead += 1
-        
-    # 3. Extraer matriz inversa final y multiplicar por B (usando SymPy para la limpieza visual final)
-    A = sp.Matrix([fila[:-1] for fila in matriz_entrada])
-    B = sp.Matrix([fila[-1] for fila in matriz_entrada])
-    A_inv = A.inv()
-    X = A_inv * B
-    
-    historial.append(f"La mitad derecha es ahora nuestra matriz inversa $A^{{-1}}$:\n$A^{{-1}} = {sp.latex(A_inv)}$")
-    historial.append(f"Finalmente, resolvemos el sistema multiplicando $X = A^{{-1}} B$:\n$X = {sp.latex(X)}$")
-    
-    return "\n\n".join(historial)
+    pasos.append(r"\vspace{0.5cm}\textbf{Paso 4: Matriz Inversa y Solución Final}")
+    pasos.append(rf"\[ A^{{-1}} = \frac{{1}}{{\det(A)}} \text{{Adj}}(A) = \frac{{1}}{{{sp.latex(det_A)}}} {latex_matriz_aumentada(adj_A, cols_izq=n)} = {latex_matriz_aumentada(A_inv, cols_izq=n)} \]")
+    pasos.append(r"Multiplicamos $X = A^{-1}B$:")
+    pasos.append(rf"\[ X = {latex_matriz_aumentada(A_inv, cols_izq=n)} {latex_matriz_aumentada(B, cols_izq=1)} = {latex_matriz_aumentada(X, cols_izq=1)} \]")
 
-def calcular_historial_gauss(matriz_entrada):
-    M = [[Fraction(val) for val in fila] for fila in matriz_entrada]
-    filas, cols = len(M), len(M[0])
-    historial = ["Matriz inicial:\n" + str([[str(c) for c in f] for f in M])]
-    
-    lead = 0
-    for r in range(filas):
-        if lead >= cols - 1: break
-        if M[r][lead] == 0:
-            for i in range(r + 1, filas):
-                if M[i][lead] != 0:
-                    M[r], M[i] = M[i], M[r]
-                    historial.append(f"Intercambio $F_{r+1} \\leftrightarrow F_{i+1}$:\n" + str([[str(c) for c in f] for f in M]))
-                    break
-        
-        pivote = M[r][lead]
-        if pivote != 0:
-            if pivote != 1:
-                M[r] = [x / pivote for x in M[r]]
-                historial.append(f"$F_{r+1} \\rightarrow \\frac{{1}}{{{pivote}}} F_{r+1}$:\n" + str([[str(c) for c in f] for f in M]))
-            
-            for k in range(filas):
-                if k != r and M[k][lead] != 0:
-                    factor = M[k][lead]
-                    M[k] = [M[k][j] - factor * M[r][j] for j in range(cols)]
-                    historial.append(f"$F_{k+1} \\rightarrow F_{k+1} - ({factor})F_{r+1}$:\n" + str([[str(c) for c in f] for f in M]))
-        lead += 1
-    return "\n\n".join(historial)
+    return "\n\n".join(pasos), f"Solución calculada mediante Adjunta X = {str(X.tolist())}"
 
 def generar_pdf_con_gemini(matriz, metodo, api_key):
     try:
-        client = genai.Client(api_key=api_key)
-
+        # 1. Ejecutar el motor matemático puro (cero IA involucrada en los números)
         if metodo == "gauss":
-            historial = calcular_historial_gauss(matriz)
+            pasos_latex, solucion_texto = calcular_latex_gauss(matriz)
         elif metodo == "cramer":
-            historial = calcular_historial_cramer(matriz)
+            pasos_latex, solucion_texto = calcular_latex_cramer(matriz)
         elif metodo == "inversa_gauss":
-            historial = calcular_historial_inversa_gauss(matriz)
+            pasos_latex, solucion_texto = calcular_latex_inversa_gauss(matriz)
         elif metodo == "inversa_adjunta":
-            historial = calcular_historial_inversa_adjunta(matriz)
+            pasos_latex, solucion_texto = calcular_latex_inversa_adjunta(matriz)
         else:
-            historial = calcular_historial_gauss(matriz)
+            pasos_latex, solucion_texto = calcular_latex_gauss(matriz)
 
-        # Modificamos el prompt para asegurar que Gemini muestre estos nuevos pasos claramente
-        prompt = f"""
-    Eres un tipógrafo matemático experto en LaTeX. Debes maquetar la resolución paso a paso de un sistema de ecuaciones utilizando el método de: {metodo.upper()}
-    A continuación, te entrego el historial EXACTO paso a paso generado por un motor algebraico:
-    
-    {historial}
-    
-    REGLAS ESTRICTAS:
-    1. Convierte este texto crudo en código LaTeX válido y elegante.
-    2. NO alteres ningún número ni fracción. Usa exactamente los cálculos matemáticos provistos.
-    3. Si el método involucra operaciones de fila (Gauss), escribe la matriz completa y la operación realizada al lado (ej. $F_2 \\rightarrow F_2 - 2F_1$).
-    4. Si el método involucra determinantes o cofactores, muestra la expansión de los cálculos intermedios tal como se proveen en el historial. Muestra cada cofactor por separado si se proveen.
-    5. Responde ÚNICAMENTE con el contenido LaTeX (sin \\documentclass ni preámbulos).
-    6. Al final de la resolución, encasilla claramente el vector de solución final. """
-
-        respuesta = client.models.generate_content(
-            model='gemini-3.5-flash-lite', 
-            contents=prompt
+        # 2. Llamada mínima a la IA: Solo para la interpretación final
+        client = genai.Client(api_key=api_key)
+        prompt_ia = f"""
+        Actúa como un profesor de álgebra lineal. 
+        Un estudiante acaba de resolver un sistema de ecuaciones y obtuvo el siguiente resultado numérico: {solucion_texto}.
+        Redacta una interpretación final de máximo 5 líneas. Indica claramente si el sistema es Compatible Determinado, Indeterminado o Incompatible, qué significa esto geométricamente (corte de planos/rectas) y una palabra de aliento. 
+        Devuelve SOLO el código LaTeX para este párrafo de texto (sin entornos begin/end de documento).
+        """
+        respuesta_ia = client.models.generate_content(
+            model='gemini-3.5-flash-lite',
+            contents=prompt_ia
         )
-        
-        contenido_latex = respuesta.text.replace("```latex", "").replace("```", "").strip()
+        interpretacion_latex = respuesta_ia.text.strip()
 
+        # 3. Ensamblar el documento LaTeX maestro
         documento_completo = r"""\documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[spanish]{babel}
 \usepackage{amsmath, amssymb}
 \usepackage[margin=2.5cm]{geometry}
+\usepackage[most]{tcolorbox} % Paquete esencial para las plantillas
+
 \begin{document}
-\section*{Resolución del Sistema}
-""" + contenido_latex + r"""
+""" + PLANTILLAS_TEORICAS.get(metodo, PLANTILLAS_TEORICAS["gauss"]) + r"""
+
+% --- INICIO DE CÁLCULOS MATEMÁTICOS ---
+""" + pasos_latex + r"""
+
+\newpage
+\section*{Conclusión e Interpretación}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!60!black,title=Análisis del Resultado]
+""" + interpretacion_latex + r"""
+\end{tcolorbox}
+
 \end{document}
 """
-
+        # 4. Compilación vía API externa (Sin cambios)
         codigo_url = urllib.parse.quote(documento_completo)
         url_compilador = f"https://latexonline.cc/compile?text={codigo_url}"
-        
         respuesta_pdf = requests.get(url_compilador)
         
         if respuesta_pdf.status_code == 200:
