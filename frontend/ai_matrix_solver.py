@@ -348,30 +348,33 @@ def generar_pdf_con_gemini(matriz, metodo, api_key):
 \end{document}
 """
 
-        url_compilador = "https://latexonline.cc/compile"
+        url_compilador = "https://texlive.net/cgi-bin/latexcgi"
         
-        # En lugar de usar la URL, enviamos el texto emulando la subida de un archivo .tex
+        # Texlive.net requiere que estructuremos el envío como un formulario web
+        datos = {
+            'filename[]': 'document.tex',
+            'return': 'pdf'
+        }
         archivos = {
-            'file': ('resolucion.tex', documento_completo)
+            'filecontents[]': ('document.tex', documento_completo)
         }
         
-        respuesta_pdf = requests.post(url_compilador, files=archivos)
+        respuesta_pdf = requests.post(url_compilador, data=datos, files=archivos)
         
-        if respuesta_pdf.status_code == 200:
+        # Comprobación de seguridad: Un PDF legítimo siempre inicia con los bytes '%PDF'
+        if respuesta_pdf.status_code == 200 and respuesta_pdf.content.startswith(b'%PDF'):
             return respuesta_pdf.content, None 
         else:
-            # ¡Aquí está la magia del diagnóstico! 
-            # Si falla, capturamos las últimas líneas del registro de error del compilador.
+            # Si LaTeX encuentra un error matemático/sintáctico, texlive devuelve el log completo
             log_error = respuesta_pdf.text
             
-            # Limpiamos el texto para no inundar la pantalla de Streamlit
             if "!" in log_error:
-                # Extraer solo la parte donde LaTeX grita el error (suele empezar con !)
+                # Extraemos exactamente la línea donde LaTeX detectó el fallo
                 mensaje_util = "!" + log_error.split("!")[-1][:300]
             else:
                 mensaje_util = log_error[:300]
                 
-            return None, f"Error LaTeX (Código {respuesta_pdf.status_code}): {mensaje_util}"
+            return None, f"Fallo en el formato LaTeX: {mensaje_util}"
             
     except Exception as e:
         return None, str(e)
