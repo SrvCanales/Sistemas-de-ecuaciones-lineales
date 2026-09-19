@@ -347,15 +347,29 @@ def generar_pdf_con_gemini(matriz, metodo, api_key):
 
 \end{document}
 """
-        # 4. Compilación vía API externa (Sin cambios)
-        codigo_url = urllib.parse.quote(documento_completo)
-        url_compilador = f"https://latexonline.cc/compile?text={codigo_url}"
-        respuesta_pdf = requests.get(url_compilador)
+
+
+        url_compilador = "https://latexonline.cc/compile"
+        
+        # En lugar de usar la URL, enviamos el texto emulando la subida de un archivo .tex
+        archivos = {
+            'file': ('resolucion.tex', documento_completo)
+        }
+        
+        respuesta_pdf = requests.post(url_compilador, files=archivos)
         
         if respuesta_pdf.status_code == 200:
             return respuesta_pdf.content, None 
         else:
-            return None, "Error en el servidor externo al compilar el documento LaTeX."
-
-    except Exception as e:
-        return None, str(e)
+            # ¡Aquí está la magia del diagnóstico! 
+            # Si falla, capturamos las últimas líneas del registro de error del compilador.
+            log_error = respuesta_pdf.text
+            
+            # Limpiamos el texto para no inundar la pantalla de Streamlit
+            if "!" in log_error:
+                # Extraer solo la parte donde LaTeX grita el error (suele empezar con !)
+                mensaje_util = "!" + log_error.split("!")[-1][:300]
+            else:
+                mensaje_util = log_error[:300]
+                
+            return None, f"Error LaTeX (Código {respuesta_pdf.status_code}): {mensaje_util}"
