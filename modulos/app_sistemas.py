@@ -23,8 +23,6 @@ def renderizar_aplicacion():
         initial_sidebar_state="collapsed"
     )
     
-    ruta_frontend = os.path.join(os.path.dirname(__file__), "frontend")
-    
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") # Intenta leer de Render
     
     if not GEMINI_API_KEY:
