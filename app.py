@@ -119,9 +119,11 @@ if st.session_state.pagina_actual == 'inicio':
         # El \n crea el salto de línea perfecto debajo de "Módulo X:"
         if st.button("Módulo 1:\nSistemas de ecuaciones",  use_container_width=True):
             cambiar_pagina('sistemas')
-            
+
+    label_boton = r"Módulo 2:" + "\n" + r"Geometría vectorial" + "\n" + r"$\footnotesize\text{~Sólo para PC~}$"
+    
     with col2:
-        if st.button("Módulo 2:\nGeometría vectorial\n:black[<small>~Sólo para PC~</small>]",  use_container_width=True):
+        if st.button(label_boton, use_container_width=True):
             cambiar_pagina('vectores')
 
 # --- ENRUTAMIENTO A LOS MÓDULOS ---
