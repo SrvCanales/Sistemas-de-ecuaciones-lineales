@@ -121,7 +121,7 @@ if st.session_state.pagina_actual == 'inicio':
             cambiar_pagina('sistemas')
             
     with col2:
-        if st.button("Módulo 2:\nGeometría vectorial\n:gray[~Sólo para PC~]",  use_container_width=True):
+        if st.button("Módulo 2:\nGeometría vectorial\n:black[<small>~Sólo para PC~</small>]",  use_container_width=True):
             cambiar_pagina('vectores')
 
 # --- ENRUTAMIENTO A LOS MÓDULOS ---
