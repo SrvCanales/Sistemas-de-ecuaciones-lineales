@@ -110,19 +110,18 @@ if st.session_state.pagina_actual == 'inicio':
     """, unsafe_allow_html=True)
 
     # --- INTERFAZ DEL MENÚ ---
-    st.markdown("<h1>Laboratorio Matemático</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='subtitulo'>Selecciona el entorno de simulación que deseas iniciar</p>", unsafe_allow_html=True)
+    st.markdown("<h1>Aplicación Interactiva - Álgebra lineal</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='subtitulo'>Selecciona el concepto que deseas analizar</p>", unsafe_allow_html=True)
 
-    # Usamos st.columns(2) con separación "large" para que ocupen exactamente la mitad de la pantalla
-    col1, col2 = st.columns(2, gap="large")
+    margen_izq, col1, col2, margen_der = st.columns(4, gap="large")
 
     with col1:
         # El \n crea el salto de línea perfecto debajo de "Módulo X:"
-        if st.button("Módulo 1:\nSistemas de ecuaciones"):
+        if st.button("Módulo 1:\nSistemas de ecuaciones",  use_container_width=True):
             cambiar_pagina('sistemas')
             
     with col2:
-        if st.button("Módulo 2:\nGeometría vectorial"):
+        if st.button("Módulo 2:\nGeometría vectorial\n:gray[<small>Sólo para PC</small>]",  use_container_width=True):
             cambiar_pagina('vectores')
 
 # --- ENRUTAMIENTO A LOS MÓDULOS ---
