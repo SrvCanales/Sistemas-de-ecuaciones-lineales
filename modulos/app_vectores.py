@@ -9,15 +9,13 @@ def renderizar_aplicacion():
         st.rerun()
         
     st.markdown("<hr>", unsafe_allow_html=True) # Separador visual
-    
-    # 2. Tu código original de la app de sistemas inicia aquí
-    # (Asegúrate de actualizar las rutas de tus componentes. 
-    # Por ejemplo, ahora están en "../frontend/sistemas")
-    ruta_frontend = os.path.join(os.path.dirname(__file__), "..", "frontend", "sistemas")
+
+    dir_actual = os.path.dirname(__file__)
+    ruta_frontend = os.path.abspath(os.path.join(dir_actual, "..", "frontend", "sistemas"))
     
     # ... resto del código ...
 
-    from modulos.visualizers import (
+    from .visualizers import (
         cross_product_visualizer,
         direction_cosines_visualizer,
         dot_product_visualizer,
