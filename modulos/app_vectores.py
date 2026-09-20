@@ -17,7 +17,7 @@ def renderizar_aplicacion():
     
     # ... resto del código ...
 
-    from visualizers import (
+    from modulos.visualizers import (
         cross_product_visualizer,
         direction_cosines_visualizer,
         dot_product_visualizer,
