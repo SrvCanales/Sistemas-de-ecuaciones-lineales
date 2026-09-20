@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>/*__BASE_CSS__*/</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="stage">
+    <canvas id="cv" aria-label="Plano con los vectores A y B, el ángulo entre ellos y la proyección"></canvas>
+    <div class="chips">
+      <button class="chip" id="pReset">Reiniciar</button>
+      <button class="chip" id="pPerp">Perpendiculares</button>
+      <button class="chip" id="pPar">Paralelos</button>
+      <button class="chip" id="pOpp">Opuestos</button>
+      <button class="chip" id="pSnap" aria-pressed="false">Rejilla</button>
+    </div>
+    <div class="hint">Arrastra la punta de A o de B.</div>
+  </div>
+
+  <aside class="panel">
+    <div class="vec">
+      <i class="dot" style="background:var(--p1)"></i>
+      <div class="vmain"><span class="vn a">A</span><span class="vm">|A| = <b id="aMag"></b></span></div>
+      <div class="vc" id="aXY"></div>
+    </div>
+    <div class="vec">
+      <i class="dot" style="background:var(--p2)"></i>
+      <div class="vmain"><span class="vn b">B</span><span class="vm">|B| = <b id="bMag"></b></span></div>
+      <div class="vc" id="bXY"></div>
+    </div>
+
+    <div class="eq">
+      <div class="l1"><span class="a">A</span> · <span class="b">B</span> = |<span class="a">A</span>||<span class="b">B</span>| cos <span class="t">θ</span></div>
+      <div class="l2" id="l2"></div>
+      <div class="l3" id="l3"></div>
+      <div class="chk" id="chk"></div>
+    </div>
+
+    <div>
+      <div class="mrow"><span>cos <span class="t">θ</span></span><b id="cosVal"></b></div>
+      <div class="meter"><div class="fill" id="cosFill"></div><div class="zero"></div><div class="mark" id="cosMark"></div></div>
+      <div class="mscale"><span>−1</span><span>0</span><span>1</span></div>
+    </div>
+
+    <div>
+      <div class="seg" role="group" aria-label="Dirección de la proyección">
+        <button id="ontoA" aria-pressed="true">B sobre A</button>
+        <button id="ontoB" aria-pressed="false">A sobre B</button>
+      </div>
+      <div class="pv"><span id="pCompL"></span><b id="pComp"></b></div>
+      <div class="pv"><span id="pProdL"></span><b id="pProd"></b></div>
+    </div>
+
+    <p class="note" id="note"></p>
+  </aside>
+
+</div>
+
+<script>/*__COMMON_JS__*/</script>
+<script>
+(() => {
+'use strict';
+
+/* ---------- constantes ---------- */
+const C = {bg:'#0d0f16', text:'#eeeae2', muted:'#8c92a4', sol:'#e8b94e', a:'#e0674f', b:'#3fa796', proj:'#8b7fd6'};
+const SERIF   = "italic 500 22px Newsreader, 'Iowan Old Style', Georgia, serif";
+const SERIF_S = "italic 500 19px Newsreader, 'Iowan Old Style', Georgia, serif";
+const SANS    = "500 12.5px Figtree, ui-sans-serif, system-ui, sans-serif";
+const SANS_XS = "400 11px Figtree, ui-sans-serif, system-ui, sans-serif";
+const HALF = 5.2;             // unidades visibles desde el centro hasta el borde del lado corto
+const LMAX = 4.7, LMIN = 0.4; // longitudes permitidas
+const INIT = () => ({A:{x:3.2, y:1.4}, B:{x:0.8, y:3.1}});
+
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let {A, B} = INIT();
+let onto = 'A';                       // 'A' → se proyecta B sobre A
+let W = 0, H = 0, S = 1, cx = 0, cy = 0, dpr = 1;
+let drag = null, hover = null, anim = 0, snap = false;
+
+/* ---------- utilidades ---------- */
+const X = p => cx + p.x * S;
+const Y = p => cy - p.y * S;
+const len = v => Math.hypot(v.x, v.y);
+const dot = (u, v) => u.x * v.x + u.y * v.y;
+const fmt = (n, d = 2) => {
+  if (Math.abs(n) < 0.5 * Math.pow(10, -d)) n = 0;
+  return n.toFixed(d).replace('-', '−');
+};
+const par = n => n < -0.005 ? `(${fmt(n)})` : fmt(n);
+
+function text(str, x, y, font, color, align = 'center') {
+  ctx.save();
+  ctx.font = font; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  ctx.lineWidth = 5; ctx.strokeStyle = C.bg; ctx.strokeText(str, x, y);
+  ctx.fillStyle = color; ctx.fillText(str, x, y);
+  ctx.restore();
+}
+
+function metrics() {
+  const a = len(A), b = len(B), d = dot(A, B);
+  const cos = Math.max(-1, Math.min(1, d / (a * b)));
+  const th = Math.acos(cos);
+  return {a, b, d, cos, th, deg: th * 180 / Math.PI};
+}
+
+/* ---------- dibujo ---------- */
+function resize() {
+  const r = cv.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  S = Math.min(W, H) / (2 * HALF); cx = W / 2; cy = H / 2;
+  draw();
+}
+
+function drawGrid() {
+  const nx = Math.ceil(cx / S), ny = Math.ceil(cy / S);
+  ctx.lineWidth = 1; ctx.setLineDash([]);
+  for (let i = -nx; i <= nx; i++) {
+    const x = Math.round(cx + i * S) + .5;
+    ctx.strokeStyle = i ? 'rgba(238,234,226,.05)' : 'rgba(238,234,226,.30)';
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let j = -ny; j <= ny; j++) {
+    const y = Math.round(cy + j * S) + .5;
+    ctx.strokeStyle = j ? 'rgba(238,234,226,.05)' : 'rgba(238,234,226,.30)';
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  ctx.save();
+  ctx.fillStyle = 'rgba(140,146,164,.55)'; ctx.font = SANS_XS; ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  for (let i = -nx + 1; i < nx; i++) if (i) ctx.fillText(String(i).replace('-', '−'), cx + i * S, cy + 14);
+  ctx.textAlign = 'right';
+  for (let j = -ny + 1; j < ny; j++) if (j) ctx.fillText(String(j).replace('-', '−'), cx - 8, cy - j * S);
+  ctx.restore();
+  text('x', W - 16, cy - 13, SERIF_S, C.muted);
+  text('y', cx + 14, 16, SERIF_S, C.muted);
+}
+
+function drawAngle(m) {
+  const aA = Math.atan2(A.y, A.x), aB = Math.atan2(B.y, B.x);
+  let d = aB - aA;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d <= -Math.PI) d += 2 * Math.PI;
+  const r = Math.max(28, Math.min(64, 0.46 * Math.min(m.a, m.b) * S));
+
+  ctx.save();
+  ctx.setLineDash([]); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.fillStyle = 'rgba(232,185,78,.16)'; ctx.strokeStyle = C.sol; ctx.lineWidth = 2.4;
+  if (Math.abs(m.deg - 90) < 1) {                         // ángulo recto → cuadrado
+    const s = r * 0.62, u = [Math.cos(aA), -Math.sin(aA)], w = [Math.cos(aB), -Math.sin(aB)];
+    const p1 = [cx + u[0] * s, cy + u[1] * s];
+    const p2 = [cx + (u[0] + w[0]) * s, cy + (u[1] + w[1]) * s];
+    const p3 = [cx + w[0] * s, cy + w[1] * s];
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(...p1); ctx.lineTo(...p2); ctx.lineTo(...p3); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(...p1); ctx.lineTo(...p2); ctx.lineTo(...p3); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -aA, -aA - d, d > 0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, -aA, -aA - d, d > 0); ctx.stroke();
+  }
+  ctx.restore();
+
+  const mid = aA + d / 2;
+  const rr = r + ((m.deg < 25 || m.deg > 155) ? 40 : 32);
+  text(`θ = ${fmt(m.deg, 1)}°`, cx + Math.cos(mid) * rr, cy - Math.sin(mid) * rr, SERIF_S, C.sol);
+}
+
+function projData() {
+  const base = onto === 'A' ? A : B, from = onto === 'A' ? B : A;
+  const bl = len(base), u = {x: base.x / bl, y: base.y / bl};
+  const c = dot(from, u);                                   // componente escalar
+  return {base, from, bl, u, c, F: {x: u.x * c, y: u.y * c}};
+}
+
+function drawProjection() {
+  const {from, u, c, F} = projData();
+  const bc = onto === 'A' ? C.a : C.b;
+  ctx.save(); ctx.lineCap = 'round';
+
+  // recta que contiene al vector base
+  const T = W + H;
+  ctx.setLineDash([2, 7]); ctx.lineWidth = 1.25; ctx.strokeStyle = bc; ctx.globalAlpha = .38;
+  ctx.beginPath(); ctx.moveTo(cx - u.x * T, cy + u.y * T); ctx.lineTo(cx + u.x * T, cy - u.y * T); ctx.stroke();
+
+  // sombra del vector sobre la recta
+  ctx.setLineDash([]); ctx.globalAlpha = .55; ctx.lineWidth = 9; ctx.strokeStyle = C.proj;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(X(F), Y(F)); ctx.stroke();
+
+  // perpendicular
+  ctx.globalAlpha = .95; ctx.lineWidth = 1.6; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(X(from), Y(from)); ctx.lineTo(X(F), Y(F)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // marca de ángulo recto en el pie
+  const px = from.x - F.x, py = from.y - F.y, pl = Math.hypot(px, py);
+  if (pl * S > 18 && Math.abs(c) * S > 18) {
+    const p = {x: px / pl, y: py / pl}, s = Math.sign(c), k = 11 / S;
+    const q1 = {x: F.x - s * u.x * k, y: F.y - s * u.y * k};
+    const q2 = {x: q1.x + p.x * k, y: q1.y + p.y * k};
+    const q3 = {x: F.x + p.x * k, y: F.y + p.y * k};
+    ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(X(q1), Y(q1)); ctx.lineTo(X(q2), Y(q2)); ctx.lineTo(X(q3), Y(q3)); ctx.stroke();
+  }
+  ctx.globalAlpha = 1; ctx.fillStyle = C.proj;
+  ctx.beginPath(); ctx.arc(X(F), Y(F), 4, 0, 2 * Math.PI); ctx.fill();
+  ctx.restore();
+
+  if (Math.abs(c) * S > 78) {                                // etiqueta
+    let p = pl > 1e-6 ? {x: px / pl, y: py / pl} : {x: -u.y, y: u.x};
+    text('proyección', X(F) / 2 + cx / 2 - p.x * 22, Y(F) / 2 + cy / 2 + p.y * 22, SANS, C.proj);
+  }
+}
+
+function drawVector(v, color, label, active) {
+  const x1 = X(v), y1 = Y(v), dx = x1 - cx, dy = y1 - cy, L = Math.hypot(dx, dy);
+  if (L < 1) return;
+  const ux = dx / L, uy = dy / L, hl = Math.min(17, L * .6), hw = hl * .4;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x1 - ux * hl * .8, y1 - uy * hl * .8); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - ux * hl + uy * hw, y1 - uy * hl - ux * hw);
+  ctx.lineTo(x1 - ux * hl - uy * hw, y1 - uy * hl + ux * hw);
+  ctx.closePath(); ctx.fill();
+  // anillo de agarre
+  ctx.lineWidth = 1.6; ctx.globalAlpha = active ? .95 : .5;
+  ctx.beginPath(); ctx.arc(x1, y1, 14, 0, 2 * Math.PI);
+  if (active) { ctx.save(); ctx.globalAlpha = .15; ctx.fill(); ctx.restore(); }
+  ctx.stroke();
+  ctx.restore();
+  text(label, x1 + ux * 30, y1 + uy * 30, SERIF, color);
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+  const m = metrics();
+  drawAngle(m);
+  drawProjection();
+  drawVector(A, C.a, 'A', hover === 'A' || (drag && drag.k === 'A'));
+  drawVector(B, C.b, 'B', hover === 'B' || (drag && drag.k === 'B'));
+  ctx.fillStyle = C.text; ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, 2 * Math.PI); ctx.fill();
+  updatePanel(m);
+}
+
+/* ---------- panel ---------- */
+function noteFor(m) {
+  if (m.deg < 1)   return 'Paralelos con el mismo sentido: cos θ = 1, así que A·B alcanza su máximo, |A||B|.';
+  if (m.deg > 179) return 'Paralelos con sentidos opuestos: cos θ = −1 y A·B = −|A||B|.';
+  if (Math.abs(m.deg - 90) < 1) return 'Perpendiculares: A·B = 0. Ninguno tiene componente en la dirección del otro.';
+  if (m.deg < 90)  return 'Ángulo agudo: A·B es positivo. Los vectores apuntan hacia el mismo lado.';
+  return 'Ángulo obtuso: A·B es negativo. Los vectores apuntan hacia lados opuestos.';
+}
+
+function updatePanel(m) {
+  $('aMag').textContent = fmt(m.a);  $('aXY').textContent = `(${fmt(A.x)}, ${fmt(A.y)})`;
+  $('bMag').textContent = fmt(m.b);  $('bXY').textContent = `(${fmt(B.x)}, ${fmt(B.y)})`;
+
+  $('l2').innerHTML = `= <span class="a">${fmt(m.a)}</span> × <span class="b">${fmt(m.b)}</span> × <span class="t">cos(${fmt(m.deg, 1)}°)</span>`;
+  $('l3').textContent = '= ' + fmt(m.d);
+  $('chk').textContent = `Con componentes: ${fmt(A.x)}·${par(B.x)} + ${fmt(A.y)}·${par(B.y)} = ${fmt(m.d)}`;
+
+  $('cosVal').textContent = fmt(m.cos);
+  const pos = (m.cos + 1) / 2 * 100;
+  const f = $('cosFill'); f.style.left = Math.min(50, pos) + '%'; f.style.width = Math.abs(pos - 50) + '%';
+  $('cosMark').style.left = pos + '%';
+
+  const {base, bl, c} = projData();
+  const from = onto === 'A' ? 'B' : 'A', to = onto;
+  $('pCompL').textContent = `Componente de ${from} sobre ${to}`;
+  $('pComp').textContent = `|${from}| cos θ = ${fmt(c)}`;
+  $('pProdL').textContent = `|${to}| × componente`;
+  $('pProd').textContent = `${fmt(bl)} × ${par(c)} = ${fmt(bl * c)}`;
+  $('note').textContent = noteFor(m);
+  VZ.fit();
+}
+
+/* ---------- interacción ---------- */
+const pos = e => { const r = cv.getBoundingClientRect(); return {px: e.clientX - r.left, py: e.clientY - r.top}; };
+const toMath = (px, py) => ({x: (px - cx) / S, y: (cy - py) / S});
+
+function hit(px, py, touch) {
+  const dA = Math.hypot(px - X(A), py - Y(A)), dB = Math.hypot(px - X(B), py - Y(B)), R = touch ? 36 : 24;
+  if (dA > R && dB > R) return null;
+  return dA <= dB ? 'A' : 'B';
+}
+
+function setVec(k, p) {
+  const old = k === 'A' ? A : B;
+  let L = Math.hypot(p.x, p.y);
+  if (L < 1e-6) { p = {x: old.x, y: old.y}; L = len(p); }
+  const s = L > LMAX ? LMAX / L : (L < LMIN ? LMIN / L : 1);
+  const q = {x: p.x * s, y: p.y * s};
+  if (k === 'A') A = q; else B = q;
+}
+
+cv.addEventListener('pointerdown', e => {
+  const {px, py} = pos(e), k = hit(px, py, e.pointerType === 'touch');
+  if (!k) return;
+  cancelAnimationFrame(anim);
+  const v = k === 'A' ? A : B;
+  drag = {k, ox: px - X(v), oy: py - Y(v)};
+  cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; draw();
+});
+
+cv.addEventListener('pointermove', e => {
+  const {px, py} = pos(e);
+  if (drag) {
+    const p = toMath(px - drag.ox, py - drag.oy);
+    if (e.shiftKey || snap) { p.x = Math.round(p.x * 2) / 2; p.y = Math.round(p.y * 2) / 2; }
+    setVec(drag.k, p); draw(); return;
+  }
+  if (e.pointerType === 'touch') return;
+  const k = hit(px, py, false);
+  if (k !== hover) { hover = k; cv.style.cursor = k ? 'grab' : 'default'; draw(); }
+});
+
+const endDrag = () => { drag = null; cv.style.cursor = hover ? 'grab' : 'default'; draw(); };
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('pointerleave', () => { if (!drag && hover) { hover = null; draw(); } });
+
+/* ---------- animaciones y atajos ---------- */
+function animateTo(nA, nB) {
+  cancelAnimationFrame(anim);
+  if (reduce) { A = nA; B = nB; draw(); return; }
+  const polar = v => ({r: len(v), a: Math.atan2(v.y, v.x)});
+  const lerp = (p, q, t) => {
+    let da = q.a - p.a;
+    while (da > Math.PI) da -= 2 * Math.PI;
+    while (da < -Math.PI) da += 2 * Math.PI;
+    const r = p.r + (q.r - p.r) * t, a = p.a + da * t;
+    return {x: r * Math.cos(a), y: r * Math.sin(a)};
+  };
+  const fa = polar(A), fb = polar(B), ta = polar(nA), tb = polar(nB), t0 = performance.now(), D = 420;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3);
+    A = lerp(fa, ta, e); B = lerp(fb, tb, e); draw();
+    if (t < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+
+const unit = v => { const l = len(v); return {x: v.x / l, y: v.y / l}; };
+$('pReset').onclick = () => { const i = INIT(); animateTo(i.A, i.B); };
+$('pPerp').onclick  = () => {
+  const u = unit(A), n = {x: -u.y, y: u.x}, l = len(B), sgn = dot(B, n) >= 0 ? 1 : -1;
+  animateTo({...A}, {x: n.x * l * sgn, y: n.y * l * sgn});
+};
+$('pPar').onclick = () => { const u = unit(A), l = len(B); animateTo({...A}, {x: u.x * l, y: u.y * l}); };
+$('pOpp').onclick = () => { const u = unit(A), l = len(B); animateTo({...A}, {x: -u.x * l, y: -u.y * l}); };
+
+function setOnto(k) {
+  onto = k;
+  $('ontoA').setAttribute('aria-pressed', String(k === 'A'));
+  $('ontoB').setAttribute('aria-pressed', String(k === 'B'));
+  draw();
+}
+$('pSnap').onclick = () => { snap = !snap; $('pSnap').setAttribute('aria-pressed', String(snap)); };
+$('ontoA').onclick = () => setOnto('A');
+$('ontoB').onclick = () => setOnto('B');
+
+new ResizeObserver(resize).observe(cv);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+resize();
+})();
+</script>
+</body>
+</html>
