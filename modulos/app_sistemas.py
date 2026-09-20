@@ -1,6 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from frontend.ai_matrix_solver import generar_pdf_con_gemini 
+from modulos.ai_matrix_solver import generar_pdf_con_gemini 
 import os
 import time
 
