@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>/*__BASE_CSS__*/</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="stage">
+    <canvas id="cv" aria-label="Espacio tridimensional con el vector v y los ángulos α, β y γ que forma con los ejes x, y y z"></canvas>
+    <div class="chips">
+      <button class="chip" id="pReset">Reiniciar</button>
+      <button class="chip" id="pUnit">Longitud 1</button>
+      <button class="chip" id="zMode" aria-pressed="false">Mover en z</button>
+      <button class="chip" id="tA" aria-pressed="true">Triángulo α</button>
+      <button class="chip" id="tB" aria-pressed="false">Triángulo β</button>
+      <button class="chip" id="tC" aria-pressed="false">Triángulo γ</button>
+    </div>
+    <div class="hint">Arrastra la punta de v. Arrastra el fondo para girar la vista.</div>
+  </div>
+
+  <aside class="panel">
+    <div class="vec">
+      <i class="dot" style="background:var(--text)"></i>
+      <div class="vmain"><span class="vn">v</span><span class="vm">|v| = <b id="vMag"></b></span></div>
+      <div class="vc" id="vXYZ"></div>
+      <div class="vc" id="vHat"></div>
+    </div>
+
+    <div class="cosrows" id="rows"></div>
+
+    <div class="eq">
+      <div class="l1">cos²<span class="a">α</span> + cos²<span class="b">β</span> + cos²<span class="n">γ</span> = 1</div>
+      <div class="l2" id="idNum"></div>
+      <div class="chk">Sale de |v|² = vₓ² + vᵧ² + v_z²: al dividir entre |v|² queda 1.</div>
+    </div>
+
+    <p class="note">Cada coseno es la fracción de |v| que cae sobre un eje: la arista de la caja sobre la hipotenusa v. Con |v| = 1, los cosenos son las coordenadas de v.</p>
+  </aside>
+
+</div>
+
+<script>/*__COMMON_JS__*/</script>
+<script>
+(() => {
+'use strict';
+const {C, FONT, $, reduce, fmt, add, sub, mul, dot, len, norm, slerp, text, View3D, bind3D, fit} = VZ;
+
+const LMAX = 3.8, LMIN = 0.4;
+const V0 = () => [2.4, 1.0, 2.0];
+const RAD = [0.8, 1.05, 1.3];                            // radios de los arcos de α, β, γ
+const AX = [
+  {id: 'a', g: 'α', hat: 'î',  e: [1, 0, 0], col: C.a, cls: 'a', css: 'var(--p1)', chip: 'tA'},
+  {id: 'b', g: 'β', hat: 'ĵ',  e: [0, 1, 0], col: C.b, cls: 'b', css: 'var(--p2)', chip: 'tB'},
+  {id: 'c', g: 'γ', hat: 'k̂', e: [0, 0, 1], col: C.n, cls: 'n', css: 'var(--p3)', chip: 'tC'},
+];
+const view = new View3D($('cv'), {ext: 4, yaw: 5.93, pitch: .5});
+const VIEW0 = {yaw: view.yaw0, pitch: view.pitch0};
+
+let v = V0(), sel = 0, zLock = false, anim = 0;         // sel: índice del eje cuyo triángulo se resalta (o -1)
+const deg = r => r * 180 / Math.PI;
+
+function metrics() {
+  const L = len(v), c = v.map(x => x / L);
+  return {L, c, ang: c.map(Math.acos), vh: c};
+}
+
+/* ---------- dibujo ---------- */
+function draw() {
+  const m = metrics();
+  view.begin();
+  const c = view.ctx, O = [0, 0, 0], P = v, [x, y, z] = v;
+  view.floor(); view.axes({pos: [C.a, C.b, C.n]});
+
+  const Fx = [x, 0, 0], Fy = [0, y, 0], Fz = [0, 0, z], Fxy = [x, y, 0], Fxz = [x, 0, z], Fyz = [0, y, z];
+  c.save(); c.setLineDash([3, 4]); c.lineWidth = 1.1; c.strokeStyle = 'rgba(238,234,226,.30)';
+  [[Fx, Fxy], [Fx, Fxz], [Fy, Fxy], [Fy, Fyz], [Fz, Fxz], [Fz, Fyz], [Fxy, P], [Fxz, P], [Fyz, P]].forEach(([p, q]) => { view.line3(p, q); c.stroke(); });
+  c.restore();
+
+  const items = [], labels = [], foot = [Fx, Fy, Fz];
+  const hot = (st.hover === 'v' || (st.drag && st.drag.k === 'v')) ? 'hot' : 'idle';
+
+  AX.forEach((ax, i) => {
+    const F = foot[i], isSel = sel === i;
+    items.push({d: view.proj(mul(F, .5)).d, fn: () => {                 // proyección de v sobre el eje
+      c.save(); c.lineCap = 'round'; c.strokeStyle = ax.col; c.globalAlpha = isSel ? .85 : .55; c.lineWidth = isSel ? 8 : 5;
+      view.line3(O, F); c.stroke(); c.restore();
+    }});
+    const th = m.ang[i];
+    if (th > 1e-3 && th < Math.PI - 1e-3) {                              // arco del ángulo director
+      const f = norm(sub(m.vh, mul(ax.e, dot(m.vh, ax.e)))), r = Math.min(RAD[i], .5 * m.L), N = 24, pts = [];
+      for (let k = 0; k <= N; k++) { const t = th * k / N; pts.push(add(mul(ax.e, r * Math.cos(t)), mul(f, r * Math.sin(t)))); }
+      items.push({d: view.proj(pts[N >> 1]).d, fn: () => {
+        c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+        if (isSel) { c.fillStyle = ax.col; c.globalAlpha = .28; view.poly([O].concat(pts)); c.fill(); c.globalAlpha = 1; }
+        c.strokeStyle = ax.col; c.lineWidth = 2.4; view.poly(pts, false); c.stroke(); c.restore();
+      }});
+      const R = r + .42;
+      labels.push({p: add(mul(ax.e, R * Math.cos(th / 2)), mul(f, R * Math.sin(th / 2))), str: `${ax.g} = ${fmt(deg(th), 1)}°`, col: ax.col});
+    }
+  });
+
+  if (sel >= 0) {                                                        // triángulo rectángulo del ángulo elegido
+    const ax = AX[sel], F = foot[sel];
+    items.push({d: (view.proj(O).d + view.proj(F).d + view.proj(P).d) / 3, fn: () => {
+      c.save(); c.lineJoin = 'round';
+      c.fillStyle = ax.col; c.globalAlpha = .20; view.poly([O, F, P]); c.fill();
+      c.globalAlpha = .9; c.strokeStyle = ax.col; c.lineWidth = 1.4; view.poly([O, F, P]); c.stroke();
+      if (Math.abs(v[sel]) > .3) {                                       // marca de ángulo recto en el pie
+        const d1 = norm(sub(O, F)), d2 = norm(sub(P, F)), s = .28;
+        view.poly([add(F, mul(d1, s)), add(F, mul(add(d1, d2), s)), add(F, mul(d2, s))], false); c.stroke();
+      }
+      c.restore();
+    }});
+    if (Math.abs(v[sel]) * view.S > 40) {                                // etiqueta del cateto adyacente
+      const a = view.proj(O), b = view.proj(F), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      let nx = -(b.y - a.y), ny = b.x - a.x; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+      if (ny < 0) { nx = -nx; ny = -ny; }
+      labels.push({sx: mx + nx * 30, sy: my + ny * 30, str: `|v| cos ${ax.g}`, col: ax.col, small: true});
+    }
+  }
+
+  items.push({d: view.proj(mul(v, .5)).d, fn: () => view.arrow(v, C.text, hot, 4.2)});
+  items.sort((p, q) => q.d - p.d);
+  items.forEach(it => it.fn());
+
+  const o = view.proj(O);
+  c.fillStyle = C.text; c.beginPath(); c.arc(o.x, o.y, 3.5, 0, 2 * Math.PI); c.fill();
+  view.tipLabel(v, 'v', FONT.serif, C.text);
+  labels.forEach(l => {
+    if (l.sx !== undefined) VZ.text(c, l.str, l.sx, l.sy, FONT.sans, l.col);
+    else {
+      const q = view.proj(l.p), dx = q.x - o.x, al = dx > 12 ? 'left' : dx < -12 ? 'right' : 'center';
+      VZ.text(c, l.str, q.x + (al === 'left' ? 4 : al === 'right' ? -4 : 0), q.y, FONT.serifS, l.col, al);
+    }
+  });
+  updatePanel(m);
+}
+
+/* ---------- panel ---------- */
+$('rows').innerHTML = AX.map(ax => `
+  <div class="cosrow">
+    <div class="def"><span class="${ax.cls}">cos ${ax.g}</span> = (v · ${ax.hat}) / (|v| |${ax.hat}|)</div>
+    <div class="val ${ax.cls}" id="val_${ax.id}"></div>
+    <div class="num" id="num_${ax.id}"></div>
+    <div class="ang" id="ang_${ax.id}"></div>
+    <div class="meter"><div class="fill" id="fill_${ax.id}" style="background:${ax.css}"></div><div class="zero"></div><div class="mark" id="mark_${ax.id}"></div></div>
+  </div>`).join('');
+
+function updatePanel(m) {
+  $('vMag').textContent = fmt(m.L);
+  $('vXYZ').textContent = `v = (${fmt(v[0])}, ${fmt(v[1])}, ${fmt(v[2])})`;
+  $('vHat').textContent = `v̂ = v/|v| = (${m.c.map(x => fmt(x, 3)).join(', ')})`;
+  AX.forEach((ax, i) => {
+    $('val_' + ax.id).textContent = fmt(m.c[i], 3);
+    $('num_' + ax.id).textContent = `= ${fmt(v[i])} / (${fmt(m.L)} · 1)`;
+    $('ang_' + ax.id).textContent = `${ax.g} = ${fmt(deg(m.ang[i]), 1)}°`;
+    const pos = (m.c[i] + 1) / 2 * 100, f = $('fill_' + ax.id);
+    f.style.left = Math.min(50, pos) + '%'; f.style.width = Math.abs(pos - 50) + '%';
+    $('mark_' + ax.id).style.left = pos + '%';
+  });
+  const q = m.c.map(k => k * k);
+  $('idNum').innerHTML = `= <span class="a">${fmt(q[0], 3)}</span> + <span class="b">${fmt(q[1], 3)}</span> + <span class="n">${fmt(q[2], 3)}</span> = ${fmt(q[0] + q[1] + q[2], 3)}`;
+  fit();
+}
+
+/* ---------- interacción ---------- */
+function setVec(k, p) {
+  let L = len(p);
+  if (L < 1e-6) { p = v.slice(); L = len(p); }
+  v = mul(p, L > LMAX ? LMAX / L : (L < LMIN ? LMIN / L : 1));
+}
+const st = bind3D(view, {
+  tips: () => [{k: 'v', v}],
+  set: setVec,
+  redraw: draw,
+  vertical: e => zLock || e.shiftKey,
+  onStart: () => cancelAnimationFrame(anim),
+  onDblBg: () => animateTo(v, VIEW0),
+});
+
+function animateTo(target, viewTarget) {
+  cancelAnimationFrame(anim);
+  let ty = view.yaw, tp = view.pitch;
+  if (viewTarget) { ty = view.yaw + Math.atan2(Math.sin(viewTarget.yaw - view.yaw), Math.cos(viewTarget.yaw - view.yaw)); tp = viewTarget.pitch; }
+  if (reduce) { v = target.slice(); view.yaw = ty; view.pitch = tp; draw(); return; }
+  const fd = norm(v), fl = len(v), td = norm(target), tl = len(target), y0 = view.yaw, p0 = view.pitch, t0 = performance.now(), D = 450;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3);
+    v = mul(slerp(fd, td, e), fl + (tl - fl) * e);
+    view.yaw = y0 + (ty - y0) * e; view.pitch = p0 + (tp - p0) * e; draw();
+    if (t < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+
+$('pReset').onclick = () => animateTo(V0(), VIEW0);
+$('pUnit').onclick = () => animateTo(norm(v));
+$('zMode').onclick = () => { zLock = !zLock; $('zMode').setAttribute('aria-pressed', String(zLock)); };
+function setSel(i) {
+  sel = sel === i ? -1 : i;
+  AX.forEach((ax, k) => { const b = $(ax.chip); b.setAttribute('aria-pressed', String(sel === k)); b.style.borderColor = sel === k ? ax.col : ''; });
+  draw();
+}
+AX.forEach((ax, i) => { $(ax.chip).onclick = () => setSel(i); });
+$(AX[0].chip).style.borderColor = AX[0].col;
+
+new ResizeObserver(() => { view.resize(); draw(); }).observe($('cv'));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+view.resize(); draw();
+})();
+</script>
+</body>
+</html>
