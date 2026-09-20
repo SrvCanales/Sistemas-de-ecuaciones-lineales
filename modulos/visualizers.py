@@ -10,7 +10,7 @@ from pathlib import Path
 
 import streamlit.components.v1 as components
 
-_DIR = Path(__file__).parent / "components"
+_DIR = Path(__file__).resolve().parent.parent / "frontend" / "vectores"
 
 # Marcadores que cada HTML deja para recibir el CSS y las utilidades JS compartidas.
 _SLOTS = {"/*__BASE_CSS__*/": "base.css", "/*__COMMON_JS__*/": "common.js"}
