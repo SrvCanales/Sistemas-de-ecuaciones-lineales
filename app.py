@@ -2,8 +2,7 @@ import streamlit as st
 
 # 1. Configuración Global
 st.set_page_config(
-    page_title="Laboratorio Matemático",
-    page_icon="📐",
+    page_title="Aplicación Interactiva - Álgebra lineal",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
